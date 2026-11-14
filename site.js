@@ -44,3 +44,17 @@ choose(new URLSearchParams(location.search).get('topic')||location.hash.slice(1)
   if(p&&p!=='/'&&p===here)a.setAttribute('aria-current','page');
  });
 })();
+
+/* Logo: P with a data point. Inline styles override the older .brand CSS. */
+(function brandMark(){
+ const b=document.querySelector('.brand');
+ const svg=b&&b.querySelector('svg');
+ if(!svg)return;
+ svg.setAttribute('viewBox','0 0 40 40');
+ svg.setAttribute('fill','none');
+ svg.innerHTML='<rect x="8.6" y="5" width="6" height="30" fill="currentColor"/><circle cx="20" cy="16.4" r="8.4" fill="none" stroke="currentColor" stroke-width="6"/><circle cx="20" cy="16.4" r="2.5" fill="#f49ab8"/>';
+ svg.style.cssText='display:block;width:40px;height:40px;color:#f7f4ec';
+ b.style.cssText='background:none;border-radius:0;padding:0;color:#f7f4ec';
+ const label=b.querySelector('span');
+ if(label)label.style.display='none';
+})();
