@@ -1,681 +1,577 @@
 (function () {
   'use strict';
 
-  var TIME_LIMIT = 45;
-  var $ = function (id) { return document.getElementById(id); };
-  var esc = function (s) {
-    return String(s).replace(/[&<>"']/g, function (c) {
-      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
-    });
-  };
+  const TIME = 45;
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const rnd = (n) => Math.floor(Math.random() * n);
+  const pick = (a) => a[rnd(a.length)];
+  const shuffle = (a) => { const b = a.slice(); for (let i = b.length - 1; i > 0; i--) { const j = rnd(i + 1); const t = b[i]; b[i] = b[j]; b[j] = t; } return b; };
+  const uniq = (a) => Array.from(new Set(a));
+  const fmt = (n) => Number(n).toLocaleString('en-GB');
+  const opt = (label, ok, extra) => Object.assign({ label: label, ok: !!ok }, extra || {});
+  const mk = (o) => Object.assign({ stimulusHTML: '', visual: false, scored: true }, o);
+  const last = {};
+  const draw = (key, arr) => { let i; do { i = rnd(arr.length); } while (arr.length > 1 && i === last[key]); last[key] = i; return arr[i]; };
 
   /* ---------- SVG helpers ---------- */
-  function matrixTile(pos, filled, tally, size) {
-    var c = [{ x: 30, y: 30 }, { x: 70, y: 30 }, { x: 70, y: 62 }, { x: 30, y: 62 }][pos % 4];
-    var node = filled
-      ? '<circle cx="' + c.x + '" cy="' + c.y + '" r="10" fill="#1c2240"/>'
-      : '<circle cx="' + c.x + '" cy="' + c.y + '" r="9" fill="#fff" stroke="#1c2240" stroke-width="3"/>';
-    var bars = '';
-    for (var i = 0; i < tally; i++) {
-      var x = 20 + i * 14;
-      bars += '<line x1="' + x + '" y1="80" x2="' + x + '" y2="91" stroke="#b45309" stroke-width="3.5" stroke-linecap="round"/>';
-    }
-    return '<svg width="' + size + '" height="' + size + '" viewBox="0 0 100 100" fill="none" aria-hidden="true" focusable="false">' +
-      '<rect x="6" y="6" width="88" height="88" rx="8" fill="#fff" stroke="#1c2240" stroke-width="2.5"/>' +
-      '<line x1="14" y1="74" x2="86" y2="74" stroke="#c9ccd6" stroke-width="1.5"/>' +
-      '<line x1="50" y1="14" x2="50" y2="70" stroke="#c9ccd6" stroke-width="1" stroke-dasharray="3 3"/>' +
-      '<line x1="16" y1="46" x2="84" y2="46" stroke="#c9ccd6" stroke-width="1" stroke-dasharray="3 3"/>' +
-      node + bars + '</svg>';
+  const POS = [[30, 30], [70, 30], [70, 62], [30, 62]];
+  const POSNAME = ['top-left', 'top-right', 'bottom-right', 'bottom-left'];
+  function tileSVG(pos, filled, bars, size) {
+    const p = POS[pos];
+    const node = filled
+      ? `<circle cx='${p[0]}' cy='${p[1]}' r='10' fill='#1c2240'/>`
+      : `<circle cx='${p[0]}' cy='${p[1]}' r='9' fill='#fff' stroke='#1c2240' stroke-width='3'/>`;
+    let b = '';
+    for (let i = 0; i < bars; i++) { const x = 20 + i * 14; b += `<line x1='${x}' y1='80' x2='${x}' y2='91' stroke='#b45309' stroke-width='3.5' stroke-linecap='round'/>`; }
+    return `<svg width='${size}' height='${size}' viewBox='0 0 100 100' fill='none' aria-hidden='true' focusable='false'><rect x='4' y='4' width='92' height='92' rx='12' fill='#fff'/><line x1='14' y1='74' x2='86' y2='74' stroke='#dcdfe8' stroke-width='1.5'/><line x1='50' y1='14' x2='50' y2='70' stroke='#dcdfe8' stroke-dasharray='3 3'/><line x1='16' y1='46' x2='84' y2='46' stroke='#dcdfe8' stroke-dasharray='3 3'/>${node}${b}</svg>`;
   }
-
-  function polygonDots(shape, dots, size) {
-    var poly = {
-      pentagon: '<polygon points="50,14 86,40 72,82 28,82 14,40" fill="#f7f4ec" stroke="#1c2240" stroke-width="2.8" stroke-linejoin="round"/>',
-      hexagon: '<polygon points="50,12 84,31 84,69 50,88 16,69 16,31" fill="#f7f4ec" stroke="#1c2240" stroke-width="2.8" stroke-linejoin="round"/>',
-      triangle: '<polygon points="50,14 88,82 12,82" fill="#f7f4ec" stroke="#1c2240" stroke-width="2.8" stroke-linejoin="round"/>',
-      square: '<rect x="18" y="18" width="64" height="64" fill="#f7f4ec" stroke="#1c2240" stroke-width="2.8" stroke-linejoin="round"/>'
-    }[shape];
-    var pos = {
-      2: [[40, 50], [60, 50]],
-      3: [[50, 42], [38, 62], [62, 62]],
-      4: [[39, 40], [61, 40], [39, 60], [61, 60]]
-    }[dots] || [];
-    var d = pos.map(function (p) { return '<circle cx="' + p[0] + '" cy="' + p[1] + '" r="4.8" fill="#4f46e5"/>'; }).join('');
-    return '<svg width="' + size + '" height="' + size + '" viewBox="0 0 100 100" fill="none" aria-hidden="true" focusable="false">' + poly + d + '</svg>';
+  const SHAPES = {
+    triangle: { sides: 3, svg: `<polygon points='50,14 88,82 12,82' fill='#f7f4ec' stroke='#1c2240' stroke-width='2.8' stroke-linejoin='round'/>` },
+    square: { sides: 4, svg: `<rect x='18' y='18' width='64' height='64' fill='#f7f4ec' stroke='#1c2240' stroke-width='2.8' stroke-linejoin='round'/>` },
+    pentagon: { sides: 5, svg: `<polygon points='50,14 86,40 72,82 28,82 14,40' fill='#f7f4ec' stroke='#1c2240' stroke-width='2.8' stroke-linejoin='round'/>` },
+    hexagon: { sides: 6, svg: `<polygon points='50,12 84,31 84,69 50,88 16,69 16,31' fill='#f7f4ec' stroke='#1c2240' stroke-width='2.8' stroke-linejoin='round'/>` }
+  };
+  const DOTS = {
+    1: [[50, 54]], 2: [[40, 54], [60, 54]], 3: [[50, 44], [38, 64], [62, 64]],
+    4: [[39, 44], [61, 44], [39, 64], [61, 64]], 5: [[50, 36], [38, 52], [62, 52], [42, 68], [58, 68]]
+  };
+  function polySVG(shape, dots, size) {
+    const d = (DOTS[dots] || []).map((p) => `<circle cx='${p[0]}' cy='${p[1]}' r='4.8' fill='#4f46e5'/>`).join('');
+    return `<svg width='${size}' height='${size}' viewBox='0 0 100 100' fill='none' aria-hidden='true' focusable='false'><rect x='4' y='4' width='92' height='92' rx='12' fill='#fff'/>${SHAPES[shape].svg}${d}</svg>`;
   }
-
-  function shapeTrio(items) {
-    var slots = [28, 75, 122];
-    var m = items.map(function (it, i) {
-      var cx = slots[i], fill = it.filled ? '#1c2240' : '#fff';
-      if (it.shape === 'circle') return '<circle cx="' + cx + '" cy="26" r="11" fill="' + fill + '" stroke="#1c2240" stroke-width="2.5"/>';
-      if (it.shape === 'square') return '<rect x="' + (cx - 10) + '" y="16" width="20" height="20" rx="2" fill="' + fill + '" stroke="#1c2240" stroke-width="2.5"/>';
-      return '<polygon points="' + cx + ',14 ' + (cx + 12) + ',36 ' + (cx - 12) + ',36" fill="' + fill + '" stroke="#1c2240" stroke-width="2.5" stroke-linejoin="round"/>';
+  function trioSVG(items) {
+    const slots = [28, 75, 122];
+    const m = items.map((it, i) => {
+      const cx = slots[i], f = it.f ? '#1c2240' : '#fff';
+      if (it.s === 'circle') return `<circle cx='${cx}' cy='26' r='11' fill='${f}' stroke='#1c2240' stroke-width='2.5'/>`;
+      if (it.s === 'square') return `<rect x='${cx - 10}' y='16' width='20' height='20' rx='2' fill='${f}' stroke='#1c2240' stroke-width='2.5'/>`;
+      return `<polygon points='${cx},14 ${cx + 12},36 ${cx - 12},36' fill='${f}' stroke='#1c2240' stroke-width='2.5' stroke-linejoin='round'/>`;
     }).join('');
-    return '<svg width="150" height="52" viewBox="0 0 150 52" fill="none" aria-hidden="true" focusable="false">' +
-      '<rect x="2" y="2" width="146" height="48" rx="6" fill="#fff" stroke="#c9ccd6" stroke-width="1.5"/>' + m + '</svg>';
+    return `<svg width='150' height='52' viewBox='0 0 150 52' fill='none' aria-hidden='true' focusable='false'><rect x='1' y='1' width='148' height='50' rx='10' fill='#fff'/>${m}</svg>`;
   }
 
-  /* ---------- Questions ---------- */
-  var QUESTIONS = [
-    {
-      id: 1, battery: 'verbal', batteryIndex: '01', batteryName: 'Verbal & deductive logic', subType: 'Word meaning', scored: true,
-      stimulusHTML:
-        '<div class="dp-pair"><div><span class="dp-tag">Group A</span><strong>(rigorous, tentative, partial)</strong></div>' +
-        '<div><span class="dp-tag">Group B</span><strong>(exacting, decisive, lavish)</strong></div></div>',
-      prompt: 'Choose the pair, one word from each group, that are closest in meaning.',
-      options: [
-        { key: 'A', label: 'rigorous and exacting' },
-        { key: 'B', label: 'tentative and decisive' },
-        { key: 'C', label: 'partial and lavish' },
-        { key: 'D', label: 'rigorous and decisive' }
-      ],
-      correctKey: 'A',
-      explanation: '"Rigorous" (strict, thorough, careful about detail) and "exacting" (demanding precision) are near-synonyms. "Tentative" and "decisive" are opposites, and "partial" and "lavish" have no shared meaning.'
-    },
-    {
-      id: 2, battery: 'verbal', batteryIndex: '01', batteryName: 'Verbal & deductive logic', subType: 'Deductive reasoning', scored: true,
-      stimulusHTML:
-        '<div class="dp-passage"><span class="dp-tag">Briefing passage</span><p>"Organisations rarely fail because they lack data; they fail because analytical output is divorced from decision ownership. Commissioning additional research when governance is unclear increases reporting volume without improving commercial outcomes."</p></div>',
-      prompt: 'Assuming the passage is strictly true, which conclusion necessarily follows?',
-      options: [
-        { key: 'A', label: 'Increasing data volume automatically improves commercial outcomes when governance is clear.' },
-        { key: 'B', label: 'Commissioning new research under unclear governance will increase reporting output without improving commercial results.' },
-        { key: 'C', label: 'Most organisations need fewer analysts and more senior commercial managers.' },
-        { key: 'D', label: 'Commercial outcomes depend entirely on research commissioning budgets.' }
-      ],
-      correctKey: 'B',
-      explanation: 'Only the second option restates what the passage supports. The first assumes the reverse of the passage holds (if unclear governance blocks improvement, clear governance does not automatically deliver it). The others introduce claims the passage never makes.'
-    },
-    {
-      id: 3, battery: 'verbal', batteryIndex: '01', batteryName: 'Verbal & deductive logic', subType: 'Opposites', scored: true,
-      stimulusHTML: null,
-      prompt: 'Select the word that is most nearly OPPOSITE in meaning to: TACITURN',
-      options: [
-        { key: 'A', label: 'Reticent' },
-        { key: 'B', label: 'Forthcoming' },
-        { key: 'C', label: 'Methodical' },
-        { key: 'D', label: 'Equivocal' }
-      ],
-      correctKey: 'B',
-      explanation: '"Taciturn" means reserved and uncommunicative. "Forthcoming" (willing to share information) is its opposite. "Reticent" is a near-synonym of taciturn.'
-    },
-    {
-      id: 4, battery: 'numerical', batteryIndex: '02', batteryName: 'Numerical & data fluency', subType: 'Number sequence', scored: true,
-      stimulusHTML:
-        '<div class="dp-seq" role="img" aria-label="Sequence: 4, 9, 19, 39, 79, then a question mark">' +
-        [4, 9, 19, 39, 79].map(function (n) { return '<span>' + n + '</span>'; }).join('<i aria-hidden="true">→</i>') +
-        '<i aria-hidden="true">→</i><span class="dp-q">?</span></div>',
-      prompt: 'Find the next number in the sequence.',
-      options: [
-        { key: 'A', label: '149' }, { key: 'B', label: '158' }, { key: 'C', label: '159' }, { key: 'D', label: '161' }
-      ],
-      correctKey: 'C',
-      explanation: 'The differences double each time: +5, +10, +20, +40, so the next is +80 and 79 + 80 = 159. Equivalently, each term is double the previous one plus 1.'
-    },
-    {
-      id: 5, battery: 'numerical', batteryIndex: '02', batteryName: 'Numerical & data fluency', subType: 'Commercial data interpretation', scored: true,
-      stimulusHTML:
-        '<div class="dp-table-wrap"><table class="dp-table"><thead><tr><th>Acquisition channel</th><th>Total sessions</th><th>Conversion rate</th><th>Average order value</th></tr></thead>' +
-        '<tbody><tr><td>Channel Alpha</td><td>12,000</td><td>3.5%</td><td>£40</td></tr><tr><td>Channel Beta</td><td>8,000</td><td>4.5%</td><td>£50</td></tr></tbody></table></div>',
-      prompt: 'What is the difference in total revenue between Channel Beta and Channel Alpha?',
-      options: [
-        { key: 'A', label: '£1,200 more for Channel Beta' },
-        { key: 'B', label: '£1,200 more for Channel Alpha' },
-        { key: 'C', label: '£1,800 more for Channel Beta' },
-        { key: 'D', label: 'They generate identical revenue' }
-      ],
-      correctKey: 'A',
-      explanation: 'Alpha: 12,000 × 3.5% = 420 orders × £40 = £16,800. Beta: 8,000 × 4.5% = 360 orders × £50 = £18,000. Beta generates £1,200 more.'
-    },
-    {
-      id: 6, battery: 'numerical', batteryIndex: '02', batteryName: 'Numerical & data fluency', subType: 'Rate problem', scored: true,
-      stimulusHTML: null,
-      prompt: 'An analytics pipeline processes 450,000 events in 15 minutes using 3 worker nodes. At the same rate per node, how many events will 5 nodes process in 20 minutes?',
-      options: [
-        { key: 'A', label: '750,000' }, { key: 'B', label: '900,000' }, { key: 'C', label: '1,000,000' }, { key: 'D', label: '1,125,000' }
-      ],
-      correctKey: 'C',
-      explanation: '450,000 ÷ 3 nodes ÷ 15 minutes = 10,000 events per node per minute. Then 5 nodes × 20 minutes × 10,000 = 1,000,000.'
-    },
-    {
-      id: 7, battery: 'abstract', batteryIndex: '03', batteryName: 'Abstract & diagrammatic', subType: 'Visual series', scored: true,
-      stimulusHTML:
-        '<div class="dp-series"><span class="dp-tag">Series, left to right</span><div class="dp-series-row">' +
-        [[0, true, 1], [1, false, 2], [2, true, 3], [3, false, 4]].map(function (t, i) {
-          return '<div>' + matrixTile(t[0], t[1], t[2], 80) + '<small>Step ' + (i + 1) + '</small></div>';
-        }).join('') +
-        '<div><div class="dp-blank">?</div><small>Step 5</small></div></div></div>',
-      prompt: 'Which figure completes Step 5?',
-      visual: true,
-      options: [
-        { key: 'A', label: 'Top-left, filled, 5 bars', svg: matrixTile(0, true, 5, 84) },
-        { key: 'B', label: 'Top-left, hollow, 5 bars', svg: matrixTile(0, false, 5, 84) },
-        { key: 'C', label: 'Top-right, filled, 5 bars', svg: matrixTile(1, true, 5, 84) },
-        { key: 'D', label: 'Top-left, filled, 4 bars', svg: matrixTile(0, true, 4, 84) }
-      ],
-      correctKey: 'A',
-      explanation: 'Three rules run together. The circle moves a quarter-turn clockwise each step (top-left, top-right, bottom-right, bottom-left, then back to top-left). Its fill alternates (filled, hollow, filled, hollow, then filled). The tally bars increase by one each step, so Step 5 has five.'
-    },
-    {
-      id: 8, battery: 'abstract', batteryIndex: '03', batteryName: 'Abstract & diagrammatic', subType: 'Odd one out', scored: true,
-      stimulusHTML: null,
-      prompt: 'Three of these tiles follow the same rule linking the polygon to its internal dots. Which is the odd one out?',
-      visual: true,
-      options: [
-        { key: 'A', label: 'Figure A', svg: polygonDots('pentagon', 3, 92) },
-        { key: 'B', label: 'Figure B', svg: polygonDots('hexagon', 4, 92) },
-        { key: 'C', label: 'Figure C', svg: polygonDots('triangle', 3, 92) },
-        { key: 'D', label: 'Figure D', svg: polygonDots('square', 2, 92) }
-      ],
-      correctKey: 'C',
-      explanation: 'The pentagon (5 sides) has 3 dots, the hexagon (6) has 4 and the square (4) has 2, so dots = sides − 2. The triangle (3 sides) should have 1 dot but has 3.'
-    },
-    {
-      id: 9, battery: 'abstract', batteryIndex: '03', batteryName: 'Abstract & diagrammatic', subType: 'Operator flow', scored: true,
-      stimulusHTML:
-        '<div class="dp-flow"><div class="dp-flow-row"><div><span class="dp-tag">Input</span>' +
-        shapeTrio([{ shape: 'circle', filled: true }, { shape: 'square', filled: false }, { shape: 'triangle', filled: true }]) +
-        '</div><div class="dp-gates" aria-hidden="true">→ <b>Gate Alpha</b> → <b class="b">Gate Beta</b> →</div><div><span class="dp-tag">Output</span><div class="dp-blank dp-blank-wide">? ? ?</div></div></div>' +
-        '<div class="dp-rules"><p><strong>Gate Alpha:</strong> inverts the fill of every shape (filled becomes hollow, hollow becomes filled).</p>' +
-        '<p><strong>Gate Beta:</strong> swaps the first and third shapes.</p></div></div>',
-      prompt: 'Which output results after the input passes through Gate Alpha, then Gate Beta?',
-      visual: true,
-      options: [
-        { key: 'A', label: 'Hollow triangle, filled square, hollow circle', svg: shapeTrio([{ shape: 'triangle', filled: false }, { shape: 'square', filled: true }, { shape: 'circle', filled: false }]) },
-        { key: 'B', label: 'Filled triangle, filled square, hollow circle', svg: shapeTrio([{ shape: 'triangle', filled: true }, { shape: 'square', filled: true }, { shape: 'circle', filled: false }]) },
-        { key: 'C', label: 'Hollow circle, filled square, hollow triangle', svg: shapeTrio([{ shape: 'circle', filled: false }, { shape: 'square', filled: true }, { shape: 'triangle', filled: false }]) },
-        { key: 'D', label: 'Hollow triangle, hollow square, filled circle', svg: shapeTrio([{ shape: 'triangle', filled: false }, { shape: 'square', filled: false }, { shape: 'circle', filled: true }]) }
-      ],
-      correctKey: 'A',
-      explanation: 'Input: filled circle, hollow square, filled triangle. Gate Alpha inverts the fills: hollow circle, filled square, hollow triangle. Gate Beta swaps the first and third: hollow triangle, filled square, hollow circle.'
-    },
-    {
-      id: 10, battery: 'style', batteryIndex: '04', batteryName: 'Decision style', subType: 'Deciding under uncertainty', scored: false,
-      stimulusHTML:
-        '<div class="dp-passage"><span class="dp-tag">Scenario 1</span><p>A major product launch is 48 hours away. Quantitative telemetry shows a 4% checkout drop-off in a secondary browser, while qualitative user testing suggests customers are confused by a pricing tier label. Fixing either issue delays the launch by a full week.</p></div>',
-      prompt: 'Which course of action best reflects your natural approach?',
-      options: [
-        { key: 'A', label: 'Pause the launch to isolate the root cause and validate both fixes cleanly before general release.', e: 2, g: 2, tag: 'High evidence · High governance' },
-        { key: 'B', label: 'Launch on schedule to the primary browser segment while gating the affected browser behind a feature flag for live A/B testing.', e: 1, g: -2, tag: 'Iterative evidence · High autonomy' },
-        { key: 'C', label: 'Patch the pricing copy immediately without delaying launch, and schedule the browser fix for the first post-launch sprint.', e: -2, g: -1, tag: 'Action velocity · Pragmatic autonomy' },
-        { key: 'D', label: 'Convene product and commercial owners to sign off an explicit risk-acceptance log and revenue threshold trigger before launching on time.', e: -1, g: 2, tag: 'Commercial velocity · High governance' }
-      ],
-      explanation: 'There is no right answer here. The scenario shows how you trade pre-launch certainty against momentum, and whether you reach for formal control or adaptive autonomy.'
-    },
-    {
-      id: 11, battery: 'style', batteryIndex: '04', batteryName: 'Decision style', subType: 'Challenging a stakeholder', scored: false,
-      stimulusHTML:
-        '<div class="dp-passage"><span class="dp-tag">Scenario 2</span><p>In an executive review, a senior stakeholder cites a strong headline conversion metric to justify doubling spend on a marketing channel. Your cohort analysis shows the lift is driven by seasonal repeat buyers rather than channel incrementality.</p></div>',
-      prompt: 'How do you handle the discrepancy?',
-      options: [
-        { key: 'A', label: 'Raise the cohort decomposition in the meeting and recommend freezing the budget increase until incrementality is proven.', e: 2, g: 2, tag: 'Strict verification · Formal governance' },
-        { key: 'B', label: 'Propose releasing 20% of the requested budget as a structured holdout test so the data settles the debate within fourteen days.', e: 2, g: -1, tag: 'Experimental rigour · Adaptive execution' },
-        { key: 'C', label: 'Brief the stakeholder privately after the meeting to realign the attribution model without slowing executive momentum in the room.', e: -1, g: 1, tag: 'Diplomatic alignment · Structured control' },
-        { key: 'D', label: 'Support the spend while demand is seasonally warm, but attach automated daily efficiency guardrails to claw back spend if CPA degrades.', e: -2, g: -2, tag: 'Commercial velocity · Autonomous guardrails' }
-      ],
-      explanation: 'There is no right answer here. The scenario shows how you apply analytical scepticism in a decision forum: through formal gatekeeping, controlled experiment, private persuasion or guardrails.'
-    },
-    {
-      id: 12, battery: 'style', batteryIndex: '04', batteryName: 'Decision style', subType: 'Allocating a team', scored: false,
-      stimulusHTML:
-        '<div class="dp-passage"><span class="dp-tag">Scenario 3</span><p>Your analytics team is handed three urgent briefs on Monday morning with competing deadlines: a board retention forecast, a root-cause investigation into rising churn, and a new self-serve dashboard for operations.</p></div>',
-      prompt: 'How do you structure the team response?',
-      options: [
-        { key: 'A', label: 'Enforce a single intake triage matrix scored by commercial decision value, requiring sponsors to trade off scope before work begins.', e: 1, g: 2, tag: 'Structured governance · High discipline' },
-        { key: 'B', label: 'Put senior capacity on the churn root cause first, as understanding the driver informs both the board forecast and the operational tooling.', e: 2, g: -1, tag: 'First-principles evidence · Analytical depth' },
-        { key: 'C', label: 'Ship minimum viable 80/20 outputs for the forecast and churn brief within 48 hours to buy time for the self-serve build.', e: -2, g: -2, tag: 'Rapid synthesis · High velocity' },
-        { key: 'D', label: 'Freeze ad-hoc dashboard requests and standardise one canonical data model that serves both board reporting and operational self-service.', e: 1, g: 1, tag: 'Architectural permanence · System control' }
-      ],
-      explanation: 'There is no right answer here. The scenario shows your operating model under competing demand: triage and governance, depth first, speed first, or foundations first.'
-    }
+  /* ---------- Verbal bank ---------- */
+  const PAIRS = [
+    { a: ['rigorous', 'tentative', 'partial'], b: ['exacting', 'decisive', 'lavish'], ok: 'rigorous and exacting', bad: ['tentative and decisive', 'partial and lavish', 'rigorous and decisive'], why: '"Rigorous" (strict, thorough) and "exacting" (demanding precision) are near-synonyms. "Tentative" and "decisive" are opposites, and "partial" and "lavish" share no meaning.' },
+    { a: ['candid', 'volatile', 'meagre'], b: ['frank', 'serene', 'abundant'], ok: 'candid and frank', bad: ['volatile and serene', 'meagre and abundant', 'candid and abundant'], why: '"Candid" and "frank" both mean open and direct. "Volatile" and "serene" are opposites, as are "meagre" and "abundant".' },
+    { a: ['frugal', 'obscure', 'hostile'], b: ['thrifty', 'famous', 'cordial'], ok: 'frugal and thrifty', bad: ['obscure and famous', 'hostile and cordial', 'frugal and cordial'], why: '"Frugal" and "thrifty" both mean careful with money. "Obscure" and "famous" are opposites, as are "hostile" and "cordial".' },
+    { a: ['impartial', 'obsolete', 'brittle'], b: ['unbiased', 'modern', 'flexible'], ok: 'impartial and unbiased', bad: ['obsolete and modern', 'brittle and flexible', 'impartial and modern'], why: '"Impartial" and "unbiased" mean the same. "Obsolete" and "modern" are opposites, as are "brittle" and "flexible".' },
+    { a: ['lucid', 'tenuous', 'benign'], b: ['clear', 'substantial', 'harmful'], ok: 'lucid and clear', bad: ['tenuous and substantial', 'benign and harmful', 'lucid and harmful'], why: '"Lucid" means clearly expressed, so it matches "clear". "Tenuous" and "substantial" are opposites, as are "benign" and "harmful".' },
+    { a: ['meticulous', 'reluctant', 'ephemeral'], b: ['careful', 'eager', 'permanent'], ok: 'meticulous and careful', bad: ['reluctant and eager', 'ephemeral and permanent', 'meticulous and permanent'], why: '"Meticulous" means very careful about detail. "Reluctant" and "eager" are opposites, as are "ephemeral" and "permanent".' }
   ];
+  const ANTS = [
+    { w: 'TACITURN', ok: 'Forthcoming', bad: ['Reticent', 'Methodical', 'Equivocal'], why: '"Taciturn" means reserved and uncommunicative. "Forthcoming" (willing to share information) is its opposite. "Reticent" is a near-synonym.' },
+    { w: 'FRUGAL', ok: 'Extravagant', bad: ['Economical', 'Austere', 'Prudent'], why: '"Frugal" means sparing with money; "extravagant" means spending freely. The other three describe careful or sparing behaviour.' },
+    { w: 'AMBIGUOUS', ok: 'Unequivocal', bad: ['Vague', 'Nuanced', 'Tentative'], why: '"Ambiguous" means open to more than one reading; "unequivocal" means having only one possible meaning. "Vague" is close to ambiguous, not opposite.' },
+    { w: 'TRANSIENT', ok: 'Permanent', bad: ['Fleeting', 'Gradual', 'Erratic'], why: '"Transient" means lasting only a short time; "permanent" is its opposite. "Fleeting" is a near-synonym.' },
+    { w: 'CANDID', ok: 'Evasive', bad: ['Frank', 'Blunt', 'Informal'], why: '"Candid" means open and honest; "evasive" means avoiding a direct answer. "Frank" and "blunt" point the same way as candid.' },
+    { w: 'MEAGRE', ok: 'Ample', bad: ['Scant', 'Modest', 'Frugal'], why: '"Meagre" means small in quantity; "ample" means more than enough. "Scant" is a near-synonym of meagre.' }
+  ];
+  const DEDS = [
+    { p: 'Organisations rarely fail because they lack data; they fail because analytical output is divorced from decision ownership. Commissioning additional research when governance is unclear increases reporting volume without improving commercial outcomes.', q: 'Assuming the passage is strictly true, which conclusion necessarily follows?', ok: 'Commissioning new research under unclear governance will increase reporting output without improving commercial results.', bad: ['Increasing data volume automatically improves commercial outcomes when governance is clear.', 'Most organisations need fewer analysts and more senior commercial managers.', 'Commercial outcomes depend entirely on research commissioning budgets.'], why: 'Only the first option restates what the passage supports. The others either assume the reverse of the passage holds or introduce claims it never makes.' },
+    { p: 'Every dashboard on the platform is built from the central data model. No dashboard built from the central data model uses unaudited sources.', q: 'Which conclusion must be true?', ok: 'No dashboard on the platform uses unaudited sources.', bad: ['Every audited source feeds a dashboard on the platform.', 'The central data model can only be used by dashboards.', 'Some dashboards on the platform use unaudited sources.'], why: 'Platform dashboards are all built from the central model, and none of those use unaudited sources. The other options reverse the premises or contradict them.' },
+    { p: 'If a test is underpowered, its result cannot be trusted. The result of the pricing test can be trusted.', q: 'Which conclusion must be true?', ok: 'The pricing test was not underpowered.', bad: ['The pricing test used a large sample.', 'Any test that is not underpowered can be trusted.', 'The pricing test result must be acted on.'], why: 'If being underpowered rules out trust, a trusted result cannot come from an underpowered test. The second option reverses the rule, and the others add claims the passage does not make.' },
+    { p: 'Team A delivers more projects than Team B. Team C delivers fewer projects than Team B. Team D delivers fewer projects than Team B but more than Team C.', q: 'Which statement must be true?', ok: 'Team A delivers more projects than Team D.', bad: ['Team D delivers more projects than Team A.', 'Team C delivers more projects than Team D.', 'Team B delivers fewer projects than Team D.'], why: 'The order is A, then B, then D, then C. Only the first option matches it.' },
+    { p: 'Of the 200 customers who contacted support and answered the survey, 80 rated their experience as poor. Customers who did not contact support were not surveyed.', q: 'Which conclusion is supported by the passage?', ok: '40% of surveyed customers who contacted support rated their experience as poor.', bad: ['40% of all customers rated their experience as poor.', 'Contacting support makes customers rate their experience as poor.', 'Most customers who did not contact support had a good experience.'], why: '80 of 200 is 40%, but only for customers who contacted support and responded. The other options generalise to everyone, infer a cause, or speak about people who were never surveyed.' },
+    { p: 'No analyst who has completed the audit course has missed a compliance deadline. Priya is an analyst and has missed a compliance deadline.', q: 'Which conclusion must be true?', ok: 'Priya has not completed the audit course.', bad: ['Every analyst who has not completed the course misses deadlines.', 'Priya will complete the audit course next year.', 'Priya is the only analyst to have missed a deadline.'], why: 'If completing the course rules out missing a deadline, then missing one means Priya has not completed it. The first option reverses the rule.' }
+  ];
+  function genPair() {
+    const it = draw('pair', PAIRS);
+    return mk({ battery: 'verbal', sub: 'Word meaning', stimulusHTML: `<div class='dp-pair'><div><small>Group A</small><b>(${it.a.join(', ')})</b></div><div><small>Group B</small><b>(${it.b.join(', ')})</b></div></div>`, prompt: 'Choose the pair, one word from each group, that are closest in meaning.', options: [opt(it.ok, 1)].concat(it.bad.map((l) => opt(l, 0))), why: it.why });
+  }
+  function genAnt() {
+    const it = draw('ant', ANTS);
+    return mk({ battery: 'verbal', sub: 'Opposites', prompt: `Select the word most nearly OPPOSITE in meaning to: ${it.w}`, options: [opt(it.ok, 1)].concat(it.bad.map((l) => opt(l, 0))), why: it.why });
+  }
+  function genDed() {
+    const it = draw('ded', DEDS);
+    return mk({ battery: 'verbal', sub: 'Deductive reasoning', stimulusHTML: `<div class='dp-passage'><small>Passage</small><p>${esc(it.p)}</p></div>`, prompt: it.q, options: [opt(it.ok, 1)].concat(it.bad.map((l) => opt(l, 0))), why: it.why });
+  }
 
-  var ARCHETYPES = {
-    architect: {
-      code: 'architect', quadrant: 'Evidence + governance', title: 'The Bayesian Architect',
-      tagline: 'High analytical verification paired with structured governance. You build resilient decision systems before committing capital.',
-      strengths: 'You separate causal signal from seasonal noise and build repeatable governance that prevents costly false positives.',
-      blind: 'Under extreme time pressure, waiting for clean evidence can cost first-mover tempo.'
-    },
-    navigator: {
-      code: 'navigator', quadrant: 'Evidence + autonomy', title: 'The Systems Navigator',
-      tagline: 'Empirical, hypothesis-driven and adaptive. You favour live experiments and first-principles investigation over bureaucracy.',
-      strengths: 'You turn ambiguous commercial questions into falsifiable experiments and let teams find root causes quickly.',
-      blind: 'Stakeholders may need clearer signposts on where your autonomy ends and governance begins.'
-    },
-    verifier: {
-      code: 'verifier', quadrant: 'Velocity + governance', title: 'The Deliberate Controller',
-      tagline: 'Commercial momentum backed by clear risk ownership, formal guardrails and executive accountability.',
-      strengths: 'You keep organisations moving on schedule while every bet has an owner, a trigger and a capped downside.',
-      blind: 'Post-launch guardrails suit reversible decisions. Irreversible choices may deserve deeper verification first.'
-    },
-    synthesiser: {
-      code: 'synthesiser', quadrant: 'Velocity + autonomy', title: 'The Rapid Synthesiser',
-      tagline: 'Decisive 80/20 execution and high operational velocity. You ship, iterate in production and correct with live data.',
-      strengths: 'You unblock stalled teams, focus on immediate traction and avoid analysis paralysis when directional signal is enough.',
-      blind: 'Quick patches build analytical debt unless time is set aside to formalise the underlying data model.'
+  /* ---------- Numerical generators ---------- */
+  function numOpts(ok, cands, f) {
+    f = f || fmt;
+    const w = uniq(cands.filter((n) => Number.isFinite(n) && n > 0 && n !== ok));
+    for (let d = 1; w.length < 3; d++) { const c = ok + 10 * d; if (!w.includes(c)) w.push(c); }
+    return [opt(f(ok), 1)].concat(w.slice(0, 3).map((n) => opt(f(n), 0)));
+  }
+  function genSeq() {
+    const kind = rnd(3);
+    let t = [], next, cands, why;
+    if (kind === 0) {
+      const k = pick([1, 2, 3, -1]);
+      t = [2 + rnd(8)];
+      for (let i = 0; i < 4; i++) t.push(2 * t[i] + k);
+      next = 2 * t[4] + k;
+      cands = [t[4] + (t[4] - t[3]), 2 * t[4], next + 10, next - 10];
+      why = `Each term is double the one before ${k > 0 ? 'plus ' + k : 'minus ' + (-k)}, so the next is 2 × ${t[4]} ${k > 0 ? '+' : '−'} ${Math.abs(k)} = ${next}. The gaps also double each time.`;
+    } else if (kind === 1) {
+      const s = 1 + rnd(8), d0 = 2 + rnd(4), e = 1 + rnd(3);
+      t = [s];
+      for (let i = 0; i < 4; i++) t.push(t[i] + d0 + i * e);
+      const nd = d0 + 4 * e;
+      next = t[4] + nd;
+      cands = [t[4] + nd - e, t[4] + nd + e, next + 10, next - 10];
+      why = `The gaps between terms grow by ${e} each time (${[0, 1, 2, 3].map((i) => d0 + i * e).join(', ')}), so the next gap is ${nd} and the next term is ${t[4]} + ${nd} = ${next}.`;
+    } else {
+      const s = 4 + rnd(6), k = 1 + rnd(3);
+      const t1 = 2 * s, t2 = t1 - k, t3 = 2 * t2, t4 = t3 - k;
+      t = [s, t1, t2, t3, t4];
+      next = 2 * t4;
+      cands = [t4 - k, 2 * t4 - k, 2 * t4 + k, next + 10];
+      why = `The pattern alternates: double, then subtract ${k}. The last step was subtract ${k}, so the next is to double: 2 × ${t4} = ${next}.`;
     }
+    return mk({
+      battery: 'numerical', sub: 'Number sequence',
+      stimulusHTML: `<div class='dp-seq' role='img' aria-label='Sequence: ${t.join(', ')}, then a question mark'>${t.map((n) => `<span>${n}</span>`).join('')}<span class='dp-qm'>?</span></div>`,
+      prompt: 'Find the next number in the sequence.', options: numOpts(next, cands), why: why
+    });
+  }
+  function genTable() {
+    let S1, S2, c1, c2, a1, a2, o1, o2, R1, R2;
+    do {
+      S1 = pick([6000, 8000, 10000, 12000, 14000, 16000]); S2 = pick([6000, 8000, 10000, 12000, 14000, 16000]);
+      c1 = pick([2.5, 3, 3.5, 4, 4.5, 5]); c2 = pick([2.5, 3, 3.5, 4, 4.5, 5]);
+      a1 = pick([30, 35, 40, 45, 50, 55, 60]); a2 = pick([30, 35, 40, 45, 50, 55, 60]);
+      o1 = Math.round(S1 * c1 / 100); o2 = Math.round(S2 * c2 / 100);
+      R1 = o1 * a1; R2 = o2 * a2;
+    } while (Math.abs(R1 - R2) < 400);
+    const diff = Math.abs(R1 - R2), win = R1 > R2 ? 'Alpha' : 'Beta', lose = R1 > R2 ? 'Beta' : 'Alpha';
+    let big = Math.round(diff * 1.5 / 100) * 100;
+    if (big === diff) big += 200;
+    return mk({
+      battery: 'numerical', sub: 'Commercial data interpretation',
+      stimulusHTML: `<div class='dp-tablewrap'><table class='dp-table'><thead><tr><th>Channel</th><th>Sessions</th><th>Conversion</th><th>Average order</th></tr></thead><tbody><tr><td>Alpha</td><td>${fmt(S1)}</td><td>${c1}%</td><td>£${a1}</td></tr><tr><td>Beta</td><td>${fmt(S2)}</td><td>${c2}%</td><td>£${a2}</td></tr></tbody></table></div>`,
+      prompt: 'What is the difference in total revenue between the two channels?',
+      options: [opt(`£${fmt(diff)} more for Channel ${win}`, 1), opt(`£${fmt(diff)} more for Channel ${lose}`, 0), opt(`£${fmt(big)} more for Channel ${win}`, 0), opt('They generate identical revenue', 0)],
+      why: `Alpha: ${fmt(S1)} × ${c1}% = ${fmt(o1)} orders × £${a1} = £${fmt(R1)}. Beta: ${fmt(S2)} × ${c2}% = ${fmt(o2)} orders × £${a2} = £${fmt(R2)}. Channel ${win} generates £${fmt(diff)} more.`
+    });
+  }
+  function genDelta() {
+    const S = pick([20000, 40000, 50000, 80000]), a = pick([4, 4.5, 5, 5.5, 6]), d = pick([0.5, 1]);
+    const ok = Math.round(S * d / 100), b = a - d;
+    return mk({
+      battery: 'numerical', sub: 'Percentage change',
+      prompt: `Conversion falls from ${a}% to ${b}% on ${fmt(S)} sessions. How many fewer orders is that?`,
+      options: numOpts(ok, [ok * 2, ok / 2, ok * 5, ok * 10]),
+      why: `The fall is ${d} percentage points. ${d}% of ${fmt(S)} sessions is ${fmt(ok)} fewer orders.`
+    });
+  }
+  function genRate() {
+    const n1 = pick([2, 3, 4, 5]), m1 = pick([10, 12, 15, 20]), r = pick([5000, 8000, 10000, 12000]);
+    let n2, m2;
+    do { n2 = pick([2, 3, 4, 5, 6, 8]); m2 = pick([10, 12, 15, 20, 30]); } while (n2 === n1 || m2 === m1);
+    const e1 = n1 * m1 * r, ok = n2 * m2 * r;
+    return mk({
+      battery: 'numerical', sub: 'Rate problem',
+      prompt: `A pipeline processes ${fmt(e1)} events in ${m1} minutes using ${n1} worker nodes. At the same rate per node, how many events will ${n2} nodes process in ${m2} minutes?`,
+      options: numOpts(ok, [n2 * m1 * r, n1 * m2 * r, ok + r * 10, ok - r * 10]),
+      why: `${fmt(e1)} ÷ ${n1} nodes ÷ ${m1} minutes = ${fmt(r)} events per node per minute. Then ${n2} × ${m2} × ${fmt(r)} = ${fmt(ok)}.`
+    });
+  }
+  function genPercent() {
+    const p = pick([10, 20, 25, 30, 40]), net = p * p / 100;
+    return mk({
+      battery: 'numerical', sub: 'Compound change',
+      prompt: `Revenue rises ${p}% in one quarter, then falls ${p}% the next. Compared with the start, revenue is now:`,
+      options: [opt(`${net}% lower`, 1), opt('Unchanged', 0), opt(`${p}% lower`, 0), opt(`${net}% higher`, 0)],
+      why: `A ${p}% rise multiplies revenue by ${(1 + p / 100).toFixed(2)}, and a ${p}% fall multiplies it by ${(1 - p / 100).toFixed(2)}. The product is ${(1 - net / 100).toFixed(4).replace(/0+$/, '')}, so revenue ends ${net}% lower.`
+    });
+  }
+
+  /* ---------- Abstract generators ---------- */
+  function genSeries() {
+    const pos0 = rnd(4), dir = pick([1, -1]), f0 = pick([true, false]), alt = pick([true, false]), up = pick([true, false]);
+    const step = (i) => ({ pos: ((pos0 + dir * i) % 4 + 4) % 4, f: alt ? (i % 2 === 0 ? f0 : !f0) : f0, bars: up ? 1 + i : 5 - i });
+    const s = [0, 1, 2, 3].map(step), ans = step(4);
+    const key = (x) => `${x.pos}|${x.f}|${x.bars}`;
+    const lab = (x) => `${POSNAME[x.pos][0].toUpperCase()}${POSNAME[x.pos].slice(1)}, ${x.f ? 'filled' : 'hollow'}, ${x.bars} ${x.bars === 1 ? 'bar' : 'bars'}`;
+    const wrongs = [{ pos: (ans.pos + 2) % 4, f: ans.f, bars: ans.bars }, { pos: ans.pos, f: !ans.f, bars: ans.bars }, { pos: ans.pos, f: ans.f, bars: up ? ans.bars - 1 : ans.bars + 1 }];
+    const options = [opt(lab(ans), 1, { svg: tileSVG(ans.pos, ans.f, ans.bars, 84) })].concat(wrongs.map((x) => opt(lab(x), 0, { svg: tileSVG(x.pos, x.f, x.bars, 84) })));
+    return mk({
+      battery: 'abstract', sub: 'Visual series', visual: true,
+      stimulusHTML: `<div class='dp-series'>${s.map((x, i) => `<div>${tileSVG(x.pos, x.f, x.bars, 76)}<small>Step ${i + 1}</small></div>`).join('')}<div><div class='dp-blank'>?</div><small>Step 5</small></div></div>`,
+      prompt: 'Which figure completes Step 5?', options: options,
+      why: `Three rules run together. The circle moves a quarter-turn ${dir > 0 ? 'clockwise' : 'anticlockwise'} each step. Its fill ${alt ? 'alternates between filled and hollow' : 'never changes'}. The bars ${up ? 'increase' : 'decrease'} by one each step. Step 5 is therefore: ${lab(ans).toLowerCase()}.`
+    });
+  }
+  function oddOK(tiles, odd) {
+    for (let a = -1; a <= 2; a++) for (let b = -5; b <= 6; b++) {
+      const fit = tiles.map((t, i) => (t.dots === a * t.sides + b ? i : -1)).filter((i) => i >= 0);
+      if (fit.length === 4) return false;
+      if (fit.length === 3 && fit.indexOf(odd) !== -1) return false;
+    }
+    return true;
+  }
+  function genOdd() {
+    for (;;) {
+      const k = pick([1, 2]), names = shuffle(Object.keys(SHAPES));
+      const tiles = names.map((n) => ({ shape: n, sides: SHAPES[n].sides, dots: SHAPES[n].sides - k }));
+      const odd = rnd(4), t = tiles[odd];
+      const wrong = pick([1, 2, 3, 4, 5].filter((x) => x !== t.dots && (t.shape !== 'triangle' || x <= 4)));
+      const shown = tiles.map((x, i) => (i === odd ? { shape: x.shape, sides: x.sides, dots: wrong } : x));
+      if (!oddOK(shown, odd)) continue;
+      const lab = (x) => `${x.shape[0].toUpperCase()}${x.shape.slice(1)} with ${x.dots} ${x.dots === 1 ? 'dot' : 'dots'}`;
+      return mk({
+        battery: 'abstract', sub: 'Odd one out', visual: true,
+        prompt: 'Three of these tiles follow the same rule linking the shape to its dots. Which is the odd one out?',
+        options: shown.map((x, i) => opt(lab(x), i === odd, { svg: polySVG(x.shape, x.dots, 92) })),
+        why: `Three tiles have dots = number of sides − ${k}. The ${t.shape} has ${t.sides} sides, so it should have ${t.dots} ${t.dots === 1 ? 'dot' : 'dots'}, but it has ${wrong}.`
+      });
+    }
+  }
+  const GATES = {
+    invert: { say: 'inverts the fill of every shape (filled becomes hollow, hollow becomes filled)', fn: (a) => a.map((x) => ({ s: x.s, f: !x.f })) },
+    swap: { say: 'swaps the first and third shapes', fn: (a) => [a[2], a[1], a[0]] },
+    shift: { say: 'moves the first shape to the end', fn: (a) => [a[1], a[2], a[0]] }
+  };
+  const words = (a) => a.map((x) => `${x.f ? 'filled' : 'hollow'} ${x.s}`).join(', ');
+  const ser = (a) => a.map((x) => x.s + x.f).join('|');
+  function genFlow() {
+    const input = shuffle(['circle', 'square', 'triangle']).map((s) => ({ s: s, f: Math.random() < 0.5 }));
+    const g = shuffle(Object.keys(GATES)).slice(0, 2);
+    const s1 = GATES[g[0]].fn(input), out = GATES[g[1]].fn(s1);
+    const pool = [s1, GATES[g[1]].fn(input), GATES[g[0]].fn(GATES[g[1]].fn(input)), input];
+    let wrong = [], seen = [ser(out)];
+    pool.forEach((p) => { if (seen.indexOf(ser(p)) === -1) { seen.push(ser(p)); wrong.push(p); } });
+    while (wrong.length < 3) {
+      const r = shuffle(input).map((x) => ({ s: x.s, f: Math.random() < 0.5 }));
+      if (seen.indexOf(ser(r)) === -1) { seen.push(ser(r)); wrong.push(r); }
+    }
+    wrong = wrong.slice(0, 3);
+    const mkOpt = (a, ok) => opt(words(a), ok, { svg: trioSVG(a) });
+    return mk({
+      battery: 'abstract', sub: 'Operator flow', visual: true,
+      stimulusHTML: `<div class='dp-flow'><div class='dp-flow-in'><small>Input</small>${trioSVG(input)}</div><div class='dp-rules'><p><b>Gate Alpha</b> ${GATES[g[0]].say}.</p><p><b>Gate Beta</b> ${GATES[g[1]].say}.</p></div></div>`,
+      prompt: 'Which output results after the input passes through Gate Alpha, then Gate Beta?',
+      options: [mkOpt(out, 1)].concat(wrong.map((a) => mkOpt(a, 0))),
+      why: `Input: ${words(input)}. After Gate Alpha: ${words(s1)}. After Gate Beta: ${words(out)}.`
+    });
+  }
+
+  /* ---------- Decision-style scenarios (each option sits in exactly one quadrant) ---------- */
+  const SCEN = [
+    { slot: 0, t: 'A major product launch is 48 hours away. Telemetry shows a 4% checkout drop-off in a secondary browser, and user testing suggests customers are confused by a pricing tier label. Fixing either issue delays the launch by a week.', o: [
+      ['Pause the launch to isolate the root cause and validate both fixes before general release.', 1, 1],
+      ['Launch on schedule, gating the affected browser behind a feature flag so you can test the fix live.', 1, 0],
+      ['Patch the pricing copy now, launch on time, and fix the browser issue in the first post-launch sprint.', 0, 0],
+      ['Launch on time once product and commercial owners sign a written risk acceptance with a revenue trigger.', 0, 1]] },
+    { slot: 0, t: 'A pricing change is due to go live on Monday. Early test data from 600 customers favours it, but the sample excludes your largest segment.', o: [
+      ['Delay the change until a representative test covering the largest segment is complete and signed off.', 1, 1],
+      ['Go live for the tested segments, keep the largest segment as a live holdout and review after two weeks.', 1, 0],
+      ['Go live everywhere, watch revenue daily and revert quickly if it dips.', 0, 0],
+      ['Go live on schedule after the commercial director signs a written risk acceptance covering the untested segment.', 0, 1]] },
+    { slot: 1, t: 'In an executive review, a senior stakeholder cites a strong headline conversion metric to justify doubling spend on a channel. Your cohort analysis shows the lift comes from seasonal repeat buyers, not the channel.', o: [
+      ['Raise the cohort analysis in the meeting and recommend freezing the increase until incrementality is proven.', 1, 1],
+      ['Propose releasing 20% of the budget as a structured holdout test so the data settles it within fourteen days.', 1, 0],
+      ['Support the spend while demand is warm, with automated daily guardrails that claw back spend if CPA slips.', 0, 0],
+      ['Brief the stakeholder privately after the meeting, and agree how attribution will be reported from now on.', 0, 1]] },
+    { slot: 1, t: 'A senior leader wants a one-page answer by tomorrow on why churn rose. Your analysis points to three plausible causes, and none is proven.', o: [
+      ['Say the cause cannot be stated yet, and propose a formal analysis plan with agreed milestones.', 1, 1],
+      ['Present the three hypotheses with confidence levels, and suggest cheap tests teams can start straight away.', 1, 0],
+      ['Back the most likely cause, recommend action now, and say you will refine it as data arrives.', 0, 0],
+      ['Give your best-supported recommendation, and route it through the existing churn steering group for sign-off.', 0, 1]] },
+    { slot: 2, t: 'Your analytics team is handed three urgent briefs on Monday morning: a board retention forecast, a root-cause investigation into rising churn, and a new self-serve dashboard for operations.', o: [
+      ['Run one intake triage scored by commercial decision value, and have sponsors trade off scope before work starts.', 1, 1],
+      ['Put senior capacity on the churn root cause first, because it informs both the forecast and the tooling.', 1, 0],
+      ['Ship minimum viable 80/20 outputs for the forecast and churn within 48 hours to buy time for the dashboard.', 0, 0],
+      ['Agree a delivery date and a named owner for each brief with its sponsor, and review progress weekly.', 0, 1]] },
+    { slot: 2, t: 'Two analysts ask to adopt a new modelling tool you have not assessed. It could cut turnaround time, but it sits outside your approved tool list.', o: [
+      ['Run a structured assessment of accuracy, security and cost before anyone uses it.', 1, 1],
+      ['Let them trial it on non-sensitive projects for a month and compare its outputs with the current method.', 1, 0],
+      ['Let them start using it now and see how it goes.', 0, 0],
+      ['Approve it now, provided they follow the usual sign-off route and a named owner accepts the risk.', 0, 1]] }
+  ];
+  const optTag = (e, g) => `${e ? 'Evidence-first' : 'Speed-first'} · ${g ? 'Governance-led' : 'Autonomy-led'}`;
+  function genScenario(sc, n) {
+    return mk({
+      battery: 'style', sub: ['Deciding under uncertainty', 'Challenging a stakeholder', 'Allocating a team'][sc.slot], scored: false,
+      stimulusHTML: `<div class='dp-passage'><small>Scenario ${n}</small><p>${esc(sc.t)}</p></div>`,
+      prompt: 'Which response is closest to what you would actually do?',
+      options: sc.o.map((o) => opt(o[0], 0, { e: o[1], g: o[2], tag: optTag(o[1], o[2]) })),
+      why: 'There is no right answer. Each response sits in one quadrant: evidence-first or speed-first, and governance-led or autonomy-led.'
+    });
+  }
+
+  const ARCH = {
+    architect: { name: 'The Bayesian Architect', quad: 'Evidence-first · Governance-led', tag: 'You verify before committing, and you build the controls that make decisions repeatable.', up: 'You separate real signal from noise and set up governance that prevents costly false positives.', down: 'Under time pressure, waiting for clean evidence can cost you first-mover tempo.' },
+    navigator: { name: 'The Systems Navigator', quad: 'Evidence-first · Autonomy-led', tag: 'You test your way to the answer, favouring live experiments over heavy process.', up: 'You turn ambiguous questions into falsifiable experiments and let teams find root causes quickly.', down: 'Stakeholders may need clearer signposts on where your autonomy ends and governance begins.' },
+    verifier: { name: 'The Deliberate Controller', quad: 'Speed-first · Governance-led', tag: 'You keep momentum, with clear owners, thresholds and accountability around every bet.', up: 'You keep work moving while every decision has an owner, a trigger and a capped downside.', down: 'Post-launch controls suit reversible decisions. Irreversible choices may deserve deeper checks first.' },
+    synthesiser: { name: 'The Rapid Synthesiser', quad: 'Speed-first · Autonomy-led', tag: 'You ship, learn and correct on live data rather than wait for certainty.', up: 'You unblock stalled teams and avoid analysis paralysis when directional signal is enough.', down: 'Quick fixes build analytical debt unless time is set aside to formalise the underlying model.' }
+  };
+  const BATT = {
+    verbal: { idx: '01', name: 'Verbal & deductive logic', tip: 'Practise separating conclusions that must follow from those that only seem plausible, and widen your working vocabulary.' },
+    numerical: { idx: '02', name: 'Numerical & data fluency', tip: 'Work multi-step commercial problems by hand (rates, percentage change, revenue tables), and check the gaps in any sequence early.' },
+    abstract: { idx: '03', name: 'Abstract & diagrammatic', tip: 'Break each visual into single rules (position, fill, count) and trace each operator one step at a time.' },
+    style: { idx: '04', name: 'Decision style', tip: '' }
   };
 
-  var BATTERIES = {
-    verbal: { name: 'Verbal & deductive logic', advice: 'Practise separating conclusions that must follow from those that merely seem plausible, and widen your working vocabulary of analytical terms.' },
-    numerical: { name: 'Numerical & data fluency', advice: 'Work multi-step commercial problems (rates, percentage lift, revenue tables) by hand, and check second-order differences early in any sequence.' },
-    abstract: { name: 'Abstract & diagrammatic', advice: 'Break each visual into single rules (rotation, fill toggle, element count) and trace each operator one transformation at a time.' }
-  };
-
-  /* ---------- State ---------- */
-  var state = {
-    mode: 'timed', name: '', index: 0, selected: null, responses: [],
-    order: [], timerId: null, deadline: 0, startMs: 0, challenger: null, summary: null
-  };
-
-  function show(view) {
-    ['dpLanding', 'dpQuiz', 'dpResults'].forEach(function (id) { $(id).hidden = id !== view; });
-  }
-  function top() { var h = $('dpTop'); if (h && h.scrollIntoView) h.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
-  function shuffled(arr) {
-    var a = arr.slice();
-    for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)); var t = a[i]; a[i] = a[j]; a[j] = t; }
-    return a;
-  }
-  function fmtTime(sec) {
-    var m = Math.floor(sec / 60), s = sec % 60;
-    return m > 0 ? m + 'm ' + (s < 10 ? '0' : '') + s + 's' : s + 's';
+  function buildQuiz() {
+    const q = [genPair(), genAnt(), genDed(), genSeq(), pick([genTable, genDelta])(), pick([genRate, genPercent])(), genSeries(), genOdd(), genFlow()];
+    [0, 1, 2].forEach((s) => q.push(genScenario(draw('sc' + s, SCEN.filter((x) => x.slot === s)), s + 1)));
+    return q.map((it, i) => { it.n = i + 1; return it; });
   }
 
-  /* ---------- Challenge links ---------- */
-  function readChallenge() {
-    var p = new URLSearchParams(window.location.search);
-    if (!(p.has('v') && p.has('n') && p.has('a'))) return;
-    var clamp = function (x, lo, hi) { var n = parseInt(x, 10); return isNaN(n) ? lo : Math.min(hi, Math.max(lo, n)); };
-    var v = clamp(p.get('v'), 0, 3), n = clamp(p.get('n'), 0, 3), a = clamp(p.get('a'), 0, 3);
-    var s = p.get('s');
-    state.challenger = {
-      user: (p.get('u') || 'A colleague').slice(0, 28),
-      total: v + n + a,
-      code: ARCHETYPES[s] ? s : 'architect',
-      time: clamp(p.get('t'), 0, 9999)
-    };
-    var c = state.challenger;
-    var txt = $('dpBannerText');
-    txt.textContent = '';
-    var b = document.createElement('strong');
-    b.textContent = c.user;
-    txt.appendChild(b);
-    txt.appendChild(document.createTextNode(' scored ' + c.total + '/9' + (c.time ? ' in ' + fmtTime(c.time) : '') + ' and profiled as ' + ARCHETYPES[c.code].title + '. Take the diagnostic to compare.'));
-    $('dpBanner').hidden = false;
+  /* ---------- State and flow ---------- */
+  const state = { mode: 'timed', name: '', quiz: [], i: 0, sel: null, order: [], res: [], timer: null, deadline: 0, t0: 0, challenger: null, sum: null };
+  const show = (v) => ['dpLanding', 'dpQuiz', 'dpResults'].forEach((id) => { $(id).hidden = id !== v; });
+  const toTop = () => { const h = $('dpTop'); if (h && h.scrollIntoView) h.scrollIntoView({ behavior: 'smooth', block: 'start' }); };
+  const fmtTime = (s) => (s >= 60 ? `${Math.floor(s / 60)}m ${String(s % 60).padStart(2, '0')}s` : `${s}s`);
+  const stopTimer = () => { if (state.timer) { clearInterval(state.timer); state.timer = null; } };
+
+  function start() {
+    const el = $('dpName');
+    state.name = el && el.value.trim() ? el.value.trim().slice(0, 28) : '';
+    state.quiz = buildQuiz(); state.i = 0; state.res = []; state.sel = null;
+    show('dpQuiz'); renderQ(); toTop();
   }
+  function abort() { stopTimer(); show('dpLanding'); toTop(); }
 
-  function buildChallengeUrl(s) {
-    var p = new URLSearchParams();
-    p.set('v', s.verbal); p.set('n', s.numerical); p.set('a', s.abstract);
-    p.set('s', s.archetype.code); p.set('t', s.totalTime);
-    if (s.name) p.set('u', s.name);
-    return window.location.origin + window.location.pathname + '?' + p.toString();
-  }
-
-  /* ---------- Quiz engine ---------- */
-  function startAssessment() {
-    var input = $('dpName');
-    state.name = input && input.value.trim() ? input.value.trim().slice(0, 28) : '';
-    state.index = 0; state.responses = []; state.selected = null;
-    show('dpQuiz');
-    renderQuestion();
-    top();
-  }
-
-  function stopTimer() { if (state.timerId) { clearInterval(state.timerId); state.timerId = null; } }
-
-  function abort() {
+  function renderQ() {
     stopTimer();
-    show('dpLanding');
-    top();
-  }
-
-  function renderQuestion() {
-    stopTimer();
-    var q = QUESTIONS[state.index];
-    state.selected = null;
-    state.startMs = Date.now();
-    state.order = q.scored ? q.options.slice() : shuffled(q.options);
-
+    const q = state.quiz[state.i], b = BATT[q.battery];
+    state.sel = null; state.t0 = Date.now(); state.order = shuffle(q.options);
     $('dpNotice').hidden = true;
-    $('dpBattery').textContent = q.batteryIndex + '. ' + q.batteryName.toUpperCase();
-    $('dpSubtype').textContent = q.subType;
-    $('dpCurrent').textContent = String(state.index + 1);
-    $('dpProgressText').textContent = 'Item ' + (state.index + 1) + ' of ' + QUESTIONS.length;
-    $('dpSegments').innerHTML = QUESTIONS.map(function (_, i) {
-      var cls = i < state.index ? 'done' : (i === state.index ? 'now' : '');
-      return '<span class="' + cls + '"></span>';
-    }).join('');
-    $('dpStyleNotice').hidden = q.scored;
-    $('dpInstruction').textContent = q.scored ? 'Select one answer' : 'Decision style · no right or wrong answer';
-
-    var stim = $('dpStimulus');
-    if (q.stimulusHTML) { stim.innerHTML = q.stimulusHTML; stim.hidden = false; } else { stim.innerHTML = ''; stim.hidden = true; }
+    $('dpBattery').textContent = `${b.idx} · ${b.name}`;
+    $('dpSub').textContent = q.sub;
+    $('dpCount').textContent = `${state.i + 1} of ${state.quiz.length}`;
+    $('dpDots').innerHTML = state.quiz.map((_, i) => `<span class='${i < state.i ? 'done' : i === state.i ? 'now' : ''}'></span>`).join('');
+    $('dpStyleNote').hidden = q.scored;
+    const st = $('dpStim');
+    st.innerHTML = q.stimulusHTML; st.hidden = !q.stimulusHTML;
     $('dpPrompt').textContent = q.prompt;
-
-    var box = $('dpOptions');
-    box.className = 'dp-options' + (q.visual ? ' visual' : '');
-    box.innerHTML = state.order.map(function (opt, i) {
-      var letter = String.fromCharCode(65 + i);
-      if (q.visual) {
-        return '<button type="button" role="radio" aria-checked="false" data-key="' + opt.key + '" class="dp-option dp-option-visual">' +
-          '<span class="dp-letter">' + letter + '</span><span class="dp-vis">' + opt.svg + '</span><span class="dp-vis-label">' + esc(opt.label) + '</span></button>';
-      }
-      return '<button type="button" role="radio" aria-checked="false" data-key="' + opt.key + '" class="dp-option">' +
-        '<span class="dp-letter">' + letter + '</span><span>' + esc(opt.label) + '</span></button>';
-    }).join('');
-
-    $('dpSubmitText').textContent = state.index === QUESTIONS.length - 1 ? 'Finish and see scorecard' : 'Confirm answer';
-    setupTimer(q);
+    const box = $('dpOpts');
+    box.className = 'dp-opts' + (q.visual ? ' visual' : '');
+    box.innerHTML = state.order.map((o, i) => `<button type='button' role='radio' aria-checked='false' data-i='${i}' class='dp-opt'><span class='dp-letter'>${String.fromCharCode(65 + i)}</span>${q.visual ? `<span class='dp-vis'>${o.svg}</span><span class='dp-vlabel'>${esc(o.label)}</span>` : `<span class='dp-otext'>${esc(o.label)}</span>`}</button>`).join('');
+    $('dpGoText').textContent = state.i === state.quiz.length - 1 ? 'See my results' : 'Confirm';
+    timerSetup(q);
   }
-
-  function setupTimer(q) {
-    var bar = $('dpTimerBar'), wrap = $('dpTimerWrap'), disp = $('dpTimer'), live = $('dpTimerLive');
+  function timerSetup(q) {
+    const wrap = $('dpClockWrap'), bar = $('dpBar'), live = $('dpLive'), clock = $('dpClock');
     live.textContent = '';
     if (state.mode === 'timed' && q.scored) {
-      wrap.hidden = false;
-      state.deadline = Date.now() + TIME_LIMIT * 1000;
-      disp.textContent = '00:' + TIME_LIMIT;
-      bar.style.width = '100%';
-      bar.className = 'dp-timer-bar';
-      var warned = false;
-      state.timerId = setInterval(function () {
-        var rem = Math.max(0, Math.ceil((state.deadline - Date.now()) / 1000));
-        disp.textContent = '00:' + (rem < 10 ? '0' : '') + rem;
-        bar.style.width = (rem / TIME_LIMIT * 100) + '%';
-        if (rem <= 10) {
-          bar.className = 'dp-timer-bar low';
-          if (!warned) { warned = true; live.textContent = '10 seconds left'; }
-        }
-        if (rem <= 0) { stopTimer(); timeout(); }
-      }, 250);
+      wrap.hidden = false; $('dpTrack').hidden = false;
+      state.deadline = Date.now() + TIME * 1000;
+      let warned = false;
+      const tick = () => {
+        const rem = Math.max(0, Math.ceil((state.deadline - Date.now()) / 1000));
+        clock.textContent = `0:${String(rem).padStart(2, '0')}`;
+        bar.style.width = `${rem / TIME * 100}%`;
+        bar.className = rem <= 10 ? 'low' : '';
+        if (rem <= 10 && !warned) { warned = true; live.textContent = '10 seconds left'; }
+        if (rem <= 0) { stopTimer(); record(true); }
+      };
+      tick(); state.timer = setInterval(tick, 250);
     } else {
-      wrap.hidden = true;
-      disp.textContent = q.scored ? 'Untimed' : 'Not timed';
+      wrap.hidden = true; $('dpTrack').hidden = true;
     }
   }
-
-  function timeout() {
-    var q = QUESTIONS[state.index];
-    state.responses.push({
-      id: q.id, key: state.selected || 'NONE',
-      correct: q.scored && state.selected ? state.selected === q.correctKey : false,
-      sec: TIME_LIMIT, timedOut: !state.selected
-    });
-    next();
+  function record(timedOut) {
+    const q = state.quiz[state.i];
+    const o = state.sel;
+    state.res.push({ o: o, ok: q.scored ? !!(o && o.ok) : null, sec: timedOut ? TIME : Math.max(1, Math.round((Date.now() - state.t0) / 1000)), out: !!(timedOut && !o) });
+    if (state.i < state.quiz.length - 1) { state.i++; renderQ(); toTop(); } else { finish(); }
   }
-
-  function confirmAnswer() {
-    var q = QUESTIONS[state.index];
-    if (!state.selected) {
-      var n = $('dpNotice');
-      n.textContent = 'Select an answer before continuing.';
-      n.hidden = false;
-      return;
-    }
-    stopTimer();
-    state.responses.push({
-      id: q.id, key: state.selected,
-      correct: q.scored ? state.selected === q.correctKey : null,
-      sec: Math.max(1, Math.round((Date.now() - state.startMs) / 1000)), timedOut: false
-    });
-    next();
-  }
-
-  function next() {
-    if (state.index < QUESTIONS.length - 1) {
-      state.index++;
-      renderQuestion();
-      top();
-    } else {
-      finish();
-    }
+  function confirmQ() {
+    if (!state.sel) { const n = $('dpNotice'); n.textContent = 'Choose an answer to continue.'; n.hidden = false; return; }
+    stopTimer(); record(false);
   }
 
   /* ---------- Scoring ---------- */
+  const FR = [0.1, 0.37, 0.63, 0.9];
   function summarise() {
-    var sc = { verbal: 0, numerical: 0, abstract: 0 }, time = 0, er = 0, gr = 0, firstE = 0, firstG = 0;
-    QUESTIONS.forEach(function (q, i) {
-      var r = state.responses[i];
-      if (!r) return;
-      time += r.sec;
-      if (q.scored) {
-        if (r.correct) sc[q.battery]++;
-      } else {
-        var o = q.options.filter(function (x) { return x.key === r.key; })[0];
-        if (o) {
-          er += o.e; gr += o.g;
-          if (!firstE) { firstE = o.e; firstG = o.g; }
-        }
-      }
+    const sc = { verbal: 0, numerical: 0, abstract: 0 };
+    let sec = 0, ev = 0, gv = 0;
+    state.quiz.forEach((q, i) => {
+      const r = state.res[i];
+      if (q.scored) { sec += r.sec; if (r.ok) sc[q.battery]++; }
+      else if (r.o) { ev += r.o.e; gv += r.o.g; }
     });
-    var eSign = er !== 0 ? Math.sign(er) : Math.sign(firstE || 1);
-    var gSign = gr !== 0 ? Math.sign(gr) : Math.sign(firstG || 1);
-    var code = eSign > 0 ? (gSign > 0 ? 'architect' : 'navigator') : (gSign > 0 ? 'verifier' : 'synthesiser');
-    var pct = function (raw) { return Math.min(94, Math.max(12, Math.round(50 + (raw / 6) * 42))); };
-    return {
-      name: state.name, mode: state.mode,
-      verbal: sc.verbal, numerical: sc.numerical, abstract: sc.abstract,
-      total: sc.verbal + sc.numerical + sc.abstract,
-      totalTime: time, evidencePct: pct(er), governancePct: pct(gr),
-      archetype: ARCHETYPES[code]
-    };
+    const code = ev >= 2 ? (gv >= 2 ? 'architect' : 'navigator') : (gv >= 2 ? 'verifier' : 'synthesiser');
+    return { name: state.name, mode: state.mode, verbal: sc.verbal, numerical: sc.numerical, abstract: sc.abstract, total: sc.verbal + sc.numerical + sc.abstract, sec: sec, ev: ev, gv: gv, code: code, arch: ARCH[code] };
+  }
+  const modeWord = (m) => (m === 'timed' ? 'timed' : 'untimed');
+
+  function mapSVG(s) {
+    const on = s.code;
+    const cell = (code, x, y, l1, l2) => `<rect x='${x}' y='${y}' width='96' height='96' rx='14' class='${on === code ? 'on' : ''}'/><text x='${x + 48}' y='${y + 44}' text-anchor='middle' class='${on === code ? 'on' : ''}'>${l1}</text><text x='${x + 48}' y='${y + 60}' text-anchor='middle' class='${on === code ? 'on' : ''}'>${l2}</text>`;
+    const px = 8 + (1 - FR[s.ev]) * 184, py = 8 + (1 - FR[s.gv]) * 184;
+    return `<svg viewBox='0 0 208 232' role='img' aria-label='Decision style map. You are in the ${esc(s.arch.quad)} quadrant.'><g transform='translate(0,18)'>${cell('architect', 4, 4, 'Evidence', 'Governance')}${cell('verifier', 108, 4, 'Speed', 'Governance')}${cell('navigator', 4, 108, 'Evidence', 'Autonomy')}${cell('synthesiser', 108, 108, 'Speed', 'Autonomy')}<circle cx='${px + 4}' cy='${py + 4}' r='8' class='pt'/></g><text x='104' y='12' text-anchor='middle' class='ax'>GOVERNANCE</text><text x='104' y='228' text-anchor='middle' class='ax'>AUTONOMY</text></svg>`;
   }
 
   function finish() {
-    var s = summarise();
-    state.summary = s;
-    show('dpResults');
-
-    var modeLabel = s.mode === 'timed' ? 'Timed' : 'Untimed';
-    $('rMode').textContent = modeLabel;
-    $('cName').textContent = s.name ? s.name.toUpperCase() : 'ANONYMOUS';
-    $('cDate').textContent = new Date().toLocaleDateString('en-GB', { month: 'short', year: 'numeric' }).toUpperCase();
-    $('cBadge').textContent = modeLabel.toUpperCase();
-    $('cTitle').textContent = s.archetype.title;
-    $('cTagline').textContent = s.archetype.tagline;
-    $('cScore').textContent = String(s.total);
-    $('cTime').textContent = fmtTime(s.totalTime);
-
-    [['Verbal', s.verbal], ['Numerical', s.numerical], ['Abstract', s.abstract]].forEach(function (b) {
-      $('bar' + b[0] + 'Text').textContent = b[1] + ' / 3';
-      $('bar' + b[0] + 'Fill').style.width = (b[1] / 3 * 100) + '%';
-    });
-
-    var x = Math.round(140 - (s.evidencePct / 100) * 120);
-    var y = Math.round(140 - (s.governancePct / 100) * 120);
-    ['compassHalo', 'compassPoint'].forEach(function (id) { $(id).setAttribute('cx', x); $(id).setAttribute('cy', y); });
-    $('cQuadrant').textContent = s.archetype.quadrant;
-    $('cEvidence').textContent = s.evidencePct >= 50 ? 'Evidence ' + s.evidencePct + '%' : 'Velocity ' + (100 - s.evidencePct) + '%';
-    $('cGovernance').textContent = s.governancePct >= 50 ? 'Governance ' + s.governancePct + '%' : 'Autonomy ' + (100 - s.governancePct) + '%';
-
-    var url = buildChallengeUrl(s);
-    s.url = url;
-    s.shareText = 'I scored ' + s.total + '/9 on Phil Pegram\'s free reasoning and decision-style diagnostic and profiled as ' + s.archetype.title +
-      '. Verbal ' + s.verbal + '/3, numerical ' + s.numerical + '/3, abstract ' + s.abstract + '/3. Can you beat it? ' + url;
-    $('dpShareText').value = s.shareText;
-
-    renderComparison(s);
-    renderPlan(s);
-    renderReview();
-    top();
+    const s = summarise(); state.sum = s; show('dpResults');
+    $('rScore').textContent = String(s.total);
+    $('rTime').textContent = `${modeWord(s.mode)[0].toUpperCase()}${modeWord(s.mode).slice(1)} · reasoning items took ${fmtTime(s.sec)}`;
+    const groups = ['verbal', 'numerical', 'abstract'];
+    $('rPips').innerHTML = groups.map((g) => `<span class='grp'>${state.quiz.map((q, i) => (q.battery === g ? `<i class='${state.res[i].ok ? 'ok' : 'no'}'></i>` : '')).join('')}</span>`).join('');
+    $('rRows').innerHTML = groups.map((g) => `<li><span>${BATT[g].name}</span><b>${s[g]} / 3</b></li>`).join('');
+    $('rStyle').textContent = s.arch.name;
+    $('rQuad').textContent = s.arch.quad;
+    $('rTag').textContent = s.arch.tag;
+    $('rMap').innerHTML = mapSVG(s);
+    $('rPicks').innerHTML = `<li>Evidence-first in <b>${s.ev} of 3</b> scenarios</li><li>Governance-led in <b>${s.gv} of 3</b> scenarios</li>`;
+    s.url = challengeUrl(s);
+    s.share = `Reasoning score: ${s.total}/9 (${modeWord(s.mode)}). Decision style: ${s.arch.name} (${s.arch.quad}). Can you beat my score? ${s.url}`;
+    $('dpShare').value = s.share;
+    compare(s); plan(s); review(); toTop();
   }
 
-  function renderComparison(s) {
-    var el = $('dpCompare');
-    var c = state.challenger;
+  function compare(s) {
+    const el = $('dpCompare'), c = state.challenger;
     if (!c) { el.hidden = true; return; }
-    var diff = s.total - c.total, head;
-    if (diff > 0) head = 'You beat ' + c.user + ' by ' + diff + ' point' + (diff > 1 ? 's' : '') + '.';
-    else if (diff === 0) head = 'You matched ' + c.user + ' on ' + c.total + '/9.';
-    else head = c.user + ' leads by ' + Math.abs(diff) + ' point' + (Math.abs(diff) > 1 ? 's' : '') + '.';
-    el.textContent = '';
-    var h = document.createElement('h3'); h.textContent = head;
-    var p = document.createElement('p');
-    p.textContent = 'You: ' + s.total + '/9 (' + s.archetype.title + '). ' + c.user + ': ' + c.total + '/9 (' + ARCHETYPES[c.code].title + ').';
-    var f = document.createElement('p'); f.className = 'fine';
-    f.textContent = 'Challenge links are self-reported and can be edited by anyone, so treat the comparison as friendly rather than verified.';
-    el.appendChild(h); el.appendChild(p); el.appendChild(f);
+    const d = s.total - c.total;
+    const line1 = d > 0 ? `You beat ${c.user} by ${d} ${d > 1 ? 'points' : 'point'}.` : d === 0 ? `You matched ${c.user} on ${c.total}/9.` : `${c.user} leads by ${-d} ${d < -1 ? 'points' : 'point'}.`;
+    const mm = c.mode && c.mode !== s.mode ? ` ${c.user} took it ${modeWord(c.mode)} and you took it ${modeWord(s.mode)}, so treat this loosely.` : '';
+    const same = c.code === s.code;
+    el.innerHTML = `<p class='dp-lab'>Head to head</p><h3>${esc(line1)}</h3><p>Reasoning score: you ${s.total}/9, ${esc(c.user)} ${c.total}/9.${esc(mm)}</p><p>Decision style: ${same ? 'you share the same style, ' + esc(s.arch.name) + '.' : 'you are ' + esc(s.arch.name) + ' and ' + esc(c.user) + ' is ' + esc(ARCH[c.code].name) + '. Styles are not ranked.'}</p><p class='fine'>Challenge links are self-reported and can be edited by anyone.</p>`;
     el.hidden = false;
   }
-
-  function renderPlan(s) {
-    var rows = [
-      { k: 'verbal', score: s.verbal }, { k: 'numerical', score: s.numerical }, { k: 'abstract', score: s.abstract }
-    ].sort(function (a, b) { return a.score - b.score; });
-    var html;
-    if (s.total === 9) {
-      html = '<p><strong>All nine correct.</strong> ' + (s.mode === 'timed' ? 'Try to hold that accuracy while finishing faster.' : 'Retake it in timed mode to see how the score holds under a clock.') + '</p>';
-    } else if (rows[0].score === rows[2].score) {
-      html = '<p><strong>An even spread.</strong> Your score is level across the three areas, so there is no single weak spot. The review below shows which items cost you points.</p>';
-    } else {
-      html = '<p><strong>Priority area: ' + esc(BATTERIES[rows[0].k].name) + ' (' + rows[0].score + '/3).</strong> ' + esc(BATTERIES[rows[0].k].advice) + '</p>';
-    }
-    html += '<p><strong>Where your style helps.</strong> ' + esc(s.archetype.strengths) + '</p>';
-    html += '<p><strong>Where it can mislead.</strong> ' + esc(s.archetype.blind) + '</p>';
-    $('dpPlan').innerHTML = html;
+  function plan(s) {
+    const rows = ['verbal', 'numerical', 'abstract'].map((k) => ({ k: k, n: s[k] })).sort((a, b) => a.n - b.n);
+    let h;
+    if (s.total === 9) h = `<p><b>All nine correct.</b> ${s.mode === 'timed' ? 'Try to hold that while finishing faster.' : 'Retake it timed to see how the score holds under a clock.'}</p>`;
+    else if (rows[0].n === rows[2].n) h = `<p><b>An even spread.</b> No single weak area. The review below shows which items cost you points.</p>`;
+    else h = `<p><b>Weakest area: ${esc(BATT[rows[0].k].name)} (${rows[0].n}/3).</b> ${esc(BATT[rows[0].k].tip)}</p>`;
+    h += `<p><b>Where your style helps.</b> ${esc(s.arch.up)}</p><p><b>Where it can mislead.</b> ${esc(s.arch.down)}</p>`;
+    $('dpPlan').innerHTML = h;
+  }
+  function review() {
+    $('dpReview').innerHTML = state.quiz.map((q, i) => {
+      const r = state.res[i], right = q.options.filter((o) => o.ok)[0];
+      let tag, body;
+      if (q.scored) {
+        tag = r.ok ? ['ok', 'Correct'] : r.out ? ['no', 'No answer'] : ['no', 'Incorrect'];
+        body = `<p><b>Your answer:</b> ${r.o ? esc(r.o.label) : 'None (time ran out)'}</p><p><b>Correct answer:</b> ${esc(right.label)}</p>`;
+      } else {
+        tag = ['st', 'Style'];
+        body = `<p><b>Your choice:</b> ${r.o ? esc(r.o.label) : 'None'}</p>${r.o ? `<p><b>Quadrant:</b> ${esc(r.o.tag)}</p>` : ''}`;
+      }
+      return `<details class='dp-item'><summary><span class='n'>${String(q.n).padStart(2, '0')}</span><span class='t'>${esc(q.sub)}</span><span class='s ${tag[0]}'>${tag[1]}</span></summary><div class='b'><p class='q'>${esc(q.prompt)}</p>${body}<p>${esc(q.why)}</p></div></details>`;
+    }).join('');
   }
 
-  function renderReview() {
-    $('dpReview').innerHTML = QUESTIONS.map(function (q, i) {
-      var r = state.responses[i];
-      var chosen = r ? q.options.filter(function (o) { return o.key === r.key; })[0] : null;
-      var status, detail;
-      if (q.scored) {
-        var right = q.options.filter(function (o) { return o.key === q.correctKey; })[0];
-        status = r && r.correct ? 'Correct' : (r && r.timedOut ? 'No answer' : 'Incorrect');
-        detail = '<p><strong>Your answer:</strong> ' + (chosen ? esc(chosen.label) : 'None (time ran out)') + '</p>' +
-          '<p><strong>Correct answer:</strong> ' + esc(right.label) + '</p>';
-      } else {
-        status = 'Style';
-        detail = '<p><strong>Your choice:</strong> ' + (chosen ? esc(chosen.label) + ' <span class="dp-chip">' + esc(chosen.tag) + '</span>' : 'None') + '</p>';
-      }
-      return '<details class="dp-item"><summary><span class="dp-num">' + String(q.id).padStart(2, '0') + '</span>' +
-        '<span class="dp-sum-title">' + esc(q.subType) + '</span><span class="dp-status ' + (r && r.correct ? 'ok' : (q.scored ? 'no' : 'st')) + '">' + status + '</span></summary>' +
-        '<div class="dp-item-body"><p class="dp-q-text">' + esc(q.prompt) + '</p>' + detail + '<p>' + esc(q.explanation) + '</p></div></details>';
-    }).join('');
+  /* ---------- Challenge links ---------- */
+  function challengeUrl(s) {
+    const p = new URLSearchParams();
+    p.set('v', s.verbal); p.set('n', s.numerical); p.set('a', s.abstract);
+    p.set('q', s.code); p.set('t', s.sec); p.set('m', s.mode === 'timed' ? 't' : 'u');
+    if (s.name) p.set('u', s.name);
+    return window.location.origin + window.location.pathname + '?' + p.toString();
+  }
+  function readChallenge() {
+    const p = new URLSearchParams(window.location.search);
+    if (!(p.has('v') && p.has('n') && p.has('a'))) return;
+    const cl = (x, lo, hi) => { const n = parseInt(x, 10); return isNaN(n) ? lo : Math.min(hi, Math.max(lo, n)); };
+    const code = p.get('q') || p.get('s');
+    const c = { user: (p.get('u') || 'A colleague').slice(0, 28), total: cl(p.get('v'), 0, 3) + cl(p.get('n'), 0, 3) + cl(p.get('a'), 0, 3), code: ARCH[code] ? code : 'architect', mode: p.get('m') === 't' ? 'timed' : p.get('m') === 'u' ? 'untimed' : '' };
+    state.challenger = c;
+    const el = $('dpBannerText');
+    el.textContent = '';
+    const b = document.createElement('strong'); b.textContent = c.user;
+    el.appendChild(b);
+    el.appendChild(document.createTextNode(` scored ${c.total}/9${c.mode ? ' (' + c.mode + ')' : ''}. Their decision style is ${ARCH[c.code].name}. Take it and compare.`));
+    $('dpBanner').hidden = false;
   }
 
   /* ---------- Sharing ---------- */
   function copyShare() {
-    var s = state.summary; if (!s) return;
-    var ta = $('dpShareText'), toast = $('dpToast');
-    var done = function () { toast.hidden = false; setTimeout(function () { toast.hidden = true; }, 3000); };
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(s.shareText).then(done, function () { ta.select(); try { document.execCommand('copy'); done(); } catch (e) {} });
-    } else { ta.select(); try { document.execCommand('copy'); done(); } catch (e) {} }
+    const s = state.sum; if (!s) return;
+    const ta = $('dpShare'), toast = $('dpToast');
+    const done = () => { toast.hidden = false; setTimeout(() => { toast.hidden = true; }, 3000); };
+    const old = () => { ta.select(); try { document.execCommand('copy'); done(); } catch (e) { /* ignore */ } };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(s.share).then(done, old); else old();
   }
-  function shareLinkedIn() {
-    var s = state.summary; if (!s) return;
-    window.open('https://www.linkedin.com/sharing/share-offsite/?url=' + encodeURIComponent(s.url), '_blank', 'noopener,noreferrer');
-  }
-  function shareX() {
-    var s = state.summary; if (!s) return;
-    var text = 'I scored ' + s.total + '/9 and profiled as ' + s.archetype.title + '. Can you beat it?';
-    window.open('https://twitter.com/intent/tweet?text=' + encodeURIComponent(text) + '&url=' + encodeURIComponent(s.url), '_blank', 'noopener,noreferrer');
-  }
+  const openWin = (u) => window.open(u, '_blank', 'noopener,noreferrer');
+  const shareLI = () => { if (state.sum) openWin('https://www.linkedin.com/sharing/share-offsite/?url=' + encodeURIComponent(state.sum.url)); };
+  const shareX = () => { const s = state.sum; if (s) openWin('https://twitter.com/intent/tweet?text=' + encodeURIComponent(`Reasoning score ${s.total}/9. Decision style: ${s.arch.name}. Can you beat it?`) + '&url=' + encodeURIComponent(s.url)); };
 
-  function wrap(ctx, text, x, y, maxW, lh) {
-    var words = text.split(' '), line = '';
-    words.forEach(function (w) {
-      var t = line ? line + ' ' + w : w;
-      if (ctx.measureText(t).width > maxW && line) { ctx.fillText(line, x, y); line = w; y += lh; } else { line = t; }
+  function wrapText(ctx, text, x, y, w, lh) {
+    let line = '';
+    text.split(' ').forEach((word) => {
+      const t = line ? line + ' ' + word : word;
+      if (ctx.measureText(t).width > w && line) { ctx.fillText(line, x, y); line = word; y += lh; } else line = t;
     });
     if (line) ctx.fillText(line, x, y);
   }
-
-  function downloadPNG() {
-    var s = state.summary; if (!s) return;
-    var go = function () {
-      var c = $('dpCanvas'), ctx = c.getContext('2d'), F = 'Switzer, system-ui, -apple-system, Segoe UI, sans-serif';
-      ctx.clearRect(0, 0, 1200, 630);
-      ctx.fillStyle = '#1c2240'; ctx.fillRect(0, 0, 1200, 630);
-      ctx.fillStyle = '#f49ab8'; ctx.fillRect(0, 0, 1200, 10);
-      ctx.textBaseline = 'alphabetic';
-      ctx.fillStyle = '#f49ab8'; ctx.font = '600 22px ' + F;
-      ctx.fillText('PHILPEGRAM.COM  /  REASONING & DECISION-STYLE DIAGNOSTIC', 60, 72);
-      ctx.fillStyle = '#bbc0d0'; ctx.font = '500 22px ' + F;
-      ctx.fillText((s.name || 'Anonymous') + '  ·  ' + $('cDate').textContent + '  ·  ' + (s.mode === 'timed' ? 'Timed' : 'Untimed'), 60, 110);
-      ctx.fillStyle = '#bbc0d0'; ctx.font = '600 18px ' + F; ctx.fillText('DECISION STYLE', 60, 190);
-      ctx.fillStyle = '#f7f4ec'; ctx.font = '700 54px ' + F; ctx.fillText(s.archetype.title, 60, 250);
-      ctx.fillStyle = '#bbc0d0'; ctx.font = '400 24px ' + F; wrap(ctx, s.archetype.tagline, 60, 298, 640, 34);
-      ctx.fillStyle = '#f49ab8'; ctx.font = '700 110px ' + F; ctx.fillText(String(s.total), 780, 262);
-      var nw = ctx.measureText(String(s.total)).width;
-      ctx.fillStyle = '#bbc0d0'; ctx.font = '500 44px ' + F; ctx.fillText('/ 9', 780 + nw + 12, 262);
-      ctx.font = '500 22px ' + F; ctx.fillText('Reasoning score  ·  ' + fmtTime(s.totalTime), 780, 300);
-      var rows = [['Verbal & deductive', s.verbal], ['Numerical & data', s.numerical], ['Abstract & diagrammatic', s.abstract]];
-      rows.forEach(function (r, i) {
-        var y = 430 + i * 52;
-        ctx.fillStyle = '#f7f4ec'; ctx.font = '500 21px ' + F; ctx.fillText(r[0], 60, y);
-        ctx.fillStyle = 'rgba(255,255,255,0.12)'; ctx.fillRect(330, y - 18, 330, 16);
-        ctx.fillStyle = '#f49ab8'; ctx.fillRect(330, y - 18, 330 * r[1] / 3, 16);
-        ctx.fillStyle = '#f7f4ec'; ctx.font = '600 21px ' + F; ctx.fillText(r[1] + ' / 3', 680, y);
+  function png() {
+    const s = state.sum; if (!s) return;
+    const go = () => {
+      const c = $('dpCanvas'), x = c.getContext('2d'), F = 'Switzer, system-ui, -apple-system, Segoe UI, sans-serif';
+      const rr = (a, b, w, h, r, f) => { x.fillStyle = f; x.beginPath(); x.moveTo(a + r, b); x.arcTo(a + w, b, a + w, b + h, r); x.arcTo(a + w, b + h, a, b + h, r); x.arcTo(a, b + h, a, b, r); x.arcTo(a, b, a + w, b, r); x.closePath(); x.fill(); };
+      x.clearRect(0, 0, 1200, 630); x.fillStyle = '#1c2240'; x.fillRect(0, 0, 1200, 630);
+      x.textBaseline = 'alphabetic'; x.textAlign = 'left';
+      x.fillStyle = '#f49ab8'; x.font = '600 22px ' + F; x.fillText('PHILPEGRAM.COM / REASONING & DECISION-STYLE DIAGNOSTIC', 56, 64);
+      x.fillStyle = '#bbc0d0'; x.font = '500 22px ' + F; x.fillText(`${s.name || 'Anonymous'} · ${new Date().toLocaleDateString('en-GB', { month: 'short', year: 'numeric' })} · ${modeWord(s.mode)}`, 56, 98);
+      rr(56, 130, 500, 410, 28, '#151a32');
+      x.fillStyle = '#bbc0d0'; x.font = '600 18px ' + F; x.fillText('1 · REASONING SCORE', 88, 178);
+      x.fillStyle = '#f49ab8'; x.font = '700 150px ' + F; x.fillText(String(s.total), 88, 330);
+      const w = x.measureText(String(s.total)).width;
+      x.fillStyle = '#bbc0d0'; x.font = '500 48px ' + F; x.fillText('/ 9', 88 + w + 14, 330);
+      x.font = '500 20px ' + F; x.fillText(`Reasoning items took ${fmtTime(s.sec)}`, 88, 366);
+      [['Verbal & deductive', s.verbal], ['Numerical & data', s.numerical], ['Abstract & diagrammatic', s.abstract]].forEach((r, i) => {
+        const y = 420 + i * 40;
+        x.fillStyle = '#f7f4ec'; x.font = '500 19px ' + F; x.fillText(r[0], 88, y);
+        rr(300, y - 15, 150, 12, 6, 'rgba(255,255,255,0.12)'); rr(300, y - 15, 150 * r[1] / 3, 12, 6, '#f49ab8');
+        x.fillStyle = '#f7f4ec'; x.font = '600 19px ' + F; x.fillText(`${r[1]}/3`, 468, y);
       });
-      var bx = 880, by = 350, bs = 220;
-      ctx.fillStyle = '#151a32'; ctx.fillRect(bx, by, bs, bs);
-      ctx.strokeStyle = '#444961'; ctx.lineWidth = 2; ctx.strokeRect(bx, by, bs, bs);
-      ctx.setLineDash([6, 6]); ctx.beginPath(); ctx.moveTo(bx + bs / 2, by); ctx.lineTo(bx + bs / 2, by + bs); ctx.moveTo(bx, by + bs / 2); ctx.lineTo(bx + bs, by + bs / 2); ctx.stroke(); ctx.setLineDash([]);
-      var px = bx + ((Math.round(140 - (s.evidencePct / 100) * 120) - 20) / 120) * bs;
-      var py = by + ((Math.round(140 - (s.governancePct / 100) * 120) - 20) / 120) * bs;
-      ctx.fillStyle = 'rgba(244,154,184,0.25)'; ctx.beginPath(); ctx.arc(px, py, 20, 0, 7); ctx.fill();
-      ctx.fillStyle = '#f49ab8'; ctx.beginPath(); ctx.arc(px, py, 9, 0, 7); ctx.fill();
-      ctx.strokeStyle = '#fff'; ctx.lineWidth = 3; ctx.stroke();
-      ctx.fillStyle = '#bbc0d0'; ctx.font = '500 15px ' + F; ctx.textAlign = 'center';
-      ctx.fillText('GOVERNANCE', bx + bs / 2, by - 8); ctx.fillText('AUTONOMY', bx + bs / 2, by + bs + 20);
-      ctx.textAlign = 'left'; ctx.fillText('EVIDENCE', bx, by + bs + 42); ctx.textAlign = 'right'; ctx.fillText('VELOCITY', bx + bs, by + bs + 42);
-      ctx.textAlign = 'left';
-      ctx.fillStyle = '#f7f4ec'; ctx.font = '600 24px ' + F; ctx.fillText('philpegram.com/decision-profile', 60, 596);
-      c.toBlob(function (blob) {
+      rr(600, 130, 544, 410, 28, '#151a32');
+      x.fillStyle = '#bbc0d0'; x.font = '600 18px ' + F; x.fillText('2 · DECISION STYLE (NOT SCORED)', 632, 178);
+      x.fillStyle = '#f7f4ec'; x.font = '700 38px ' + F; x.fillText(s.arch.name, 632, 232);
+      x.fillStyle = '#f49ab8'; x.font = '600 20px ' + F; x.fillText(s.arch.quad, 632, 266);
+      x.fillStyle = '#bbc0d0'; x.font = '400 20px ' + F; wrapText(x, s.arch.tag, 632, 304, 270, 28);
+      const q = { architect: [0, 0], verifier: [1, 0], navigator: [0, 1], synthesiser: [1, 1] };
+      Object.keys(q).forEach((k) => { rr(930 + q[k][0] * 98, 190 + q[k][1] * 98, 92, 92, 14, k === s.code ? '#f49ab8' : '#262d52'); });
+      const px = 930 + (1 - FR[s.ev]) * 190 + 3, py = 190 + (1 - FR[s.gv]) * 190 + 3;
+      x.fillStyle = '#f7f4ec'; x.beginPath(); x.arc(px, py, 9, 0, 7); x.fill();
+      x.fillStyle = '#bbc0d0'; x.font = '500 15px ' + F; x.textAlign = 'center';
+      x.fillText('GOVERNANCE', 1027, 180); x.fillText('AUTONOMY', 1027, 402);
+      x.textAlign = 'left'; x.fillText('EVIDENCE', 930, 424); x.textAlign = 'right'; x.fillText('SPEED', 1124, 424);
+      x.textAlign = 'left'; x.fillStyle = '#f7f4ec'; x.font = '500 20px ' + F;
+      x.fillText(`Evidence-first in ${s.ev} of 3 · Governance-led in ${s.gv} of 3`, 632, 480);
+      x.fillStyle = '#bbc0d0'; x.font = '400 18px ' + F; x.fillText('No quadrant is better than another.', 632, 510);
+      x.fillStyle = '#f7f4ec'; x.font = '600 24px ' + F; x.fillText('philpegram.com/decision-profile', 56, 588);
+      c.toBlob((blob) => {
         if (!blob) return;
-        var a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
-        a.download = 'decision-profile-scorecard.png';
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob); a.download = 'decision-profile-scorecard.png';
         document.body.appendChild(a); a.click(); document.body.removeChild(a);
-        setTimeout(function () { URL.revokeObjectURL(a.href); }, 2000);
+        setTimeout(() => URL.revokeObjectURL(a.href), 2000);
       }, 'image/png');
     };
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(go, go); else go();
   }
 
   /* ---------- Wiring ---------- */
-  function setMode(mode) {
-    state.mode = mode;
-    [['timed', 'dpModeTimed'], ['untimed', 'dpModeUntimed']].forEach(function (m) {
-      var b = $(m[1]);
-      b.classList.toggle('active', m[0] === mode);
-      b.setAttribute('aria-checked', m[0] === mode ? 'true' : 'false');
-    });
+  function setMode(m) {
+    state.mode = m;
+    [['timed', 'dpModeTimed'], ['untimed', 'dpModeUntimed']].forEach((x) => { const b = $(x[1]); b.classList.toggle('on', x[0] === m); b.setAttribute('aria-checked', x[0] === m ? 'true' : 'false'); });
+    $('dpModeHint').textContent = m === 'timed' ? '45 seconds per reasoning question. The three scenarios are never timed.' : 'No clock. Take as long as you like.';
   }
-
-  document.addEventListener('DOMContentLoaded', function () {
-    $('dpModeTimed').addEventListener('click', function () { setMode('timed'); });
-    $('dpModeUntimed').addEventListener('click', function () { setMode('untimed'); });
-    $('dpStart').addEventListener('click', startAssessment);
+  document.addEventListener('DOMContentLoaded', () => {
+    $('dpModeTimed').addEventListener('click', () => setMode('timed'));
+    $('dpModeUntimed').addEventListener('click', () => setMode('untimed'));
+    $('dpStart').addEventListener('click', start);
     $('dpRestart').addEventListener('click', abort);
-    $('dpSubmit').addEventListener('click', confirmAnswer);
+    $('dpGo').addEventListener('click', confirmQ);
     $('dpRetake').addEventListener('click', abort);
-    $('dpExpand').addEventListener('click', function () { document.querySelectorAll('#dpReview details').forEach(function (d) { d.open = true; }); });
-    $('dpCollapse').addEventListener('click', function () { document.querySelectorAll('#dpReview details').forEach(function (d) { d.open = false; }); });
-    ['dpCopy', 'dpCopy2'].forEach(function (id) { $(id).addEventListener('click', copyShare); });
-    ['dpPng', 'dpPng2'].forEach(function (id) { $(id).addEventListener('click', downloadPNG); });
-    $('dpLinkedIn').addEventListener('click', shareLinkedIn);
+    $('dpOpen').addEventListener('click', () => document.querySelectorAll('#dpReview details').forEach((d) => { d.open = true; }));
+    $('dpShut').addEventListener('click', () => document.querySelectorAll('#dpReview details').forEach((d) => { d.open = false; }));
+    ['dpCopy', 'dpCopy2'].forEach((id) => $(id).addEventListener('click', copyShare));
+    ['dpPng', 'dpPng2'].forEach((id) => $(id).addEventListener('click', png));
+    $('dpLI').addEventListener('click', shareLI);
     $('dpX').addEventListener('click', shareX);
-    $('dpBannerAccept').addEventListener('click', function () { $('dpStartCard').scrollIntoView({ behavior: 'smooth' }); });
-    $('dpBannerClose').addEventListener('click', function () { $('dpBanner').hidden = true; });
-    $('dpOptions').addEventListener('click', function (e) {
-      var btn = e.target.closest('button[data-key]');
+    $('dpAccept').addEventListener('click', () => $('dpStartCard').scrollIntoView({ behavior: 'smooth' }));
+    $('dpClose').addEventListener('click', () => { $('dpBanner').hidden = true; });
+    $('dpOpts').addEventListener('click', (e) => {
+      const btn = e.target.closest('button[data-i]');
       if (!btn) return;
-      state.selected = btn.getAttribute('data-key');
-      $('dpOptions').querySelectorAll('button').forEach(function (b) {
-        var on = b === btn;
-        b.classList.toggle('selected', on);
-        b.setAttribute('aria-checked', on ? 'true' : 'false');
-      });
+      state.sel = state.order[+btn.getAttribute('data-i')];
+      $('dpOpts').querySelectorAll('button').forEach((b) => { const on = b === btn; b.classList.toggle('sel', on); b.setAttribute('aria-checked', on ? 'true' : 'false'); });
       $('dpNotice').hidden = true;
     });
     readChallenge();
   });
+  if (typeof window.__dpTest === 'function') window.__dpTest({ buildQuiz: buildQuiz, summarise: summarise, state: state, gens: { genPair, genAnt, genDed, genSeq, genTable, genDelta, genRate, genPercent, genSeries, genOdd, genFlow }, SCEN: SCEN });
 })();
