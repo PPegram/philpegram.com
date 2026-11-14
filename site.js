@@ -45,11 +45,11 @@ choose(new URLSearchParams(location.search).get('topic')||location.hash.slice(1)
  });
 })();
 
-/* Logo: P with a data point. Inline styles override the older .brand CSS. */
+/* Logo fallback for pages not yet converted: P with a data point. Pages with data-mark skip this. */
 (function brandMark(){
  const b=document.querySelector('.brand');
  const svg=b&&b.querySelector('svg');
- if(!svg)return;
+ if(!svg||svg.dataset.mark)return;
  svg.setAttribute('viewBox','0 0 40 40');
  svg.setAttribute('fill','none');
  svg.innerHTML='<rect x="8.6" y="5" width="6" height="30" fill="currentColor"/><circle cx="20" cy="16.4" r="8.4" fill="none" stroke="currentColor" stroke-width="6"/><circle cx="20" cy="16.4" r="2.5" fill="#f49ab8"/>';
