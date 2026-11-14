@@ -17,6 +17,10 @@ Views on this site are Phil's own, not his employer's. The research briefs summa
 - [Organisational evidence capacity](https://philpegram.com/evidence-capacity): DBA critical literature review of 47 sources on commissioning, analytical capacity and evidence use in third sector organisations. Single-reviewer synthesis; it does not establish causation.
 - [Military skills, careers and social mobility](https://philpegram.com/military-transition): MBA dissertation (University of Staffordshire, May 2025) using secondary data on veterans' career trajectories and social return on training investment. Cross-sectional; it identifies associations only.
 
+## Tools
+
+- [Reasoning and decision-style diagnostic](https://philpegram.com/decision-profile): free twelve-question practice diagnostic (nine scored reasoning items and three commercial scenarios) that profiles decision style on evidence-versus-velocity and governance-versus-autonomy axes. Not a validated or normed psychometric instrument.
+
 ## Media
 
 - [Data Debrief: From Royal Engineers to Head of Insights, Life after the Military](https://open.spotify.com/episode/4d2HiOlgkPEAnHFUgyvjwL): guest episode with Catherine Dowden-King on Data Debrief, the companion show to Driven by Data: The Podcast, November 2026. Covers 12 years in the Royal Engineers and how that background shapes how Phil leads data teams.
