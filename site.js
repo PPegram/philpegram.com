@@ -35,3 +35,16 @@ leadership:"Hi Phil, I'd like to discuss an insight-leadership opportunity or ch
 function choose(topic){if(!briefs[topic])return;document.querySelectorAll('[data-topic]').forEach(b=>{const active=b.dataset.topic===topic;b.classList.toggle('active',active);b.setAttribute('aria-pressed',String(active));});const target=document.getElementById('brief-text');if(target)target.textContent=briefs[topic];document.querySelectorAll('.copy-status').forEach(p=>p.textContent='');}
 document.querySelectorAll('[data-topic]').forEach(b=>b.addEventListener('click',()=>choose(b.dataset.topic)));
 choose(new URLSearchParams(location.search).get('topic')||location.hash.slice(1));
+
+/* Preview only: load the reference style layer and mark the current footer link */
+(function loadReferenceStyle(){
+ if(!document.querySelector('link[href="reference-v2.css"]')){
+  const l=document.createElement('link');l.rel='stylesheet';l.href='/reference-v2.css';
+  document.head.appendChild(l);
+ }
+ const here=location.pathname.replace(/\/$/,'').replace(/\.html$/,'');
+ document.querySelectorAll('.footer-menu a').forEach(a=>{
+  const p=a.getAttribute('href').replace(/\.html$/,'');
+  if(p&&p!=='/'&&p===here)a.setAttribute('aria-current','page');
+ });
+})();

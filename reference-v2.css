@@ -1,0 +1,52 @@
+/* Trevor Noah reference pass 2 */
+
+/* Header: pink wordmark, no circle */
+.brand{background:none;border-radius:0;padding:0;color:var(--pink)}
+.brand svg{display:none}
+.brand span{display:inline;font-size:1.2rem;font-weight:600;letter-spacing:-.035em;color:var(--pink)}
+.brand:hover{color:var(--cream)}
+.brand:hover span{color:var(--cream)}
+.site-header nav{font-size:.85rem}
+
+/* Inner pages: page name becomes the giant pink title */
+.page-intro{padding-top:60px}
+.page-intro .eyebrow{
+  font-size:clamp(4.5rem,17vw,15rem);
+  font-weight:700;
+  letter-spacing:-.07em;
+  line-height:.85;
+  margin:0 0 .12em;
+  color:var(--pink);
+}
+.page-intro h1{
+  font-size:clamp(1.9rem,3.6vw,3.2rem);
+  font-weight:600;
+  letter-spacing:-.035em;
+  line-height:1.08;
+  max-width:24ch;
+}
+.page-intro .lead{font-size:clamp(1.05rem,1.5vw,1.25rem);max-width:52ch}
+
+/* Torn-paper edge on the charcoal band */
+.paper{position:relative}
+.paper::before{
+  content:"";position:absolute;left:0;right:0;top:-9px;height:18px;
+  background:var(--cream);
+  clip-path:polygon(0 55%,3% 20%,6% 60%,9% 30%,13% 70%,17% 25%,21% 65%,25% 35%,29% 75%,33% 30%,37% 60%,41% 20%,45% 70%,49% 35%,53% 65%,57% 25%,61% 70%,65% 30%,69% 60%,73% 20%,77% 65%,81% 35%,85% 75%,89% 30%,93% 60%,97% 25%,100% 55%,100% 100%,0 100%);
+  pointer-events:none;
+}
+
+/* Footer menu: active row pink, hover shift */
+.footer-menu a{transition:color .2s,padding-left .2s}
+.footer-menu a:hover,.footer-menu a[aria-current=page]{color:var(--pink);padding-left:14px}
+.footer-menu a:hover span,.footer-menu a[aria-current=page] span{color:var(--pink)}
+
+/* Tighter, heavier headings */
+h2{letter-spacing:-.05em;font-weight:700}
+.focus-list>a,.work-chapters article,.record-list>div{transition:background .2s}
+.focus-list>a:hover,.record-list>div:hover{background:#ffffff08}
+
+@media(max-width:760px){
+  .page-intro .eyebrow{font-size:clamp(3.6rem,21vw,6rem)}
+  .page-intro h1{font-size:1.8rem}
+}
