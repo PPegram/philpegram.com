@@ -1,6 +1,24 @@
 document.documentElement.classList.add('js');
 const menu=document.querySelector('.menu-toggle');
 const nav=document.querySelector('#main-nav');
+(function addPlaybookLinks(){
+ const here=location.pathname.replace(/\/$/,'').replace(/\.html$/,'');
+ const onPlaybook=here==='/playbook';
+ if(nav&&!nav.querySelector('a[href="/playbook"]')){
+  const a=document.createElement('a');a.href='/playbook';a.textContent='Playbook';
+  if(onPlaybook)a.setAttribute('aria-current','page');
+  nav.insertBefore(a,nav.querySelector('.nav-contact'));
+ }
+ const fm=document.querySelector('.footer-menu');
+ if(fm&&!fm.querySelector('a[href="/playbook"]')){
+  const contact=fm.querySelector('a[href="/contact"]');
+  const a=document.createElement('a');a.href='/playbook';
+  const n=document.createElement('span');n.textContent='05';
+  a.append(n,'Data Playbook');
+  fm.insertBefore(a,contact);
+  const cn=contact?.querySelector('span');if(cn)cn.textContent='06';
+ }
+})();
 menu?.addEventListener('click',()=>{const open=menu.getAttribute('aria-expanded')==='true';menu.setAttribute('aria-expanded',String(!open));nav.classList.toggle('open',!open);});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&menu?.getAttribute('aria-expanded')==='true'){menu.setAttribute('aria-expanded','false');nav.classList.remove('open');menu.focus();}});
 nav?.querySelectorAll('a').forEach(a=>a.addEventListener('click',()=>{menu?.setAttribute('aria-expanded','false');nav.classList.remove('open');}));
