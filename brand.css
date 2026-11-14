@@ -1,0 +1,5 @@
+/* Header logo: P with data point */
+.brand{background:none;border-radius:0;padding:0}
+.brand svg{display:block;width:40px;height:40px;color:var(--cream)}
+.brand span{display:none}
+@media(max-width:760px){.brand svg{width:36px;height:36px}}
