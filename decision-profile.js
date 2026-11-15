@@ -51,7 +51,7 @@
     return `<svg width='150' height='52' viewBox='0 0 150 52' fill='none' aria-hidden='true' focusable='false'><rect x='1' y='1' width='148' height='50' rx='10' fill='#fff'/>${m}</svg>`;
   }
 
-  /* ---------- Verbal bank ---------- */
+  /* ---------- Legacy verbal bank ---------- */
   const PAIRS = [
     { a: ['rigorous', 'tentative', 'partial'], b: ['exacting', 'decisive', 'lavish'], ok: 'rigorous and exacting', bad: ['tentative and decisive', 'partial and lavish', 'rigorous and decisive'], why: '"Rigorous" (strict, thorough) and "exacting" (demanding precision) are near-synonyms. "Tentative" and "decisive" are opposites, and "partial" and "lavish" share no meaning.' },
     { a: ['candid', 'volatile', 'meagre'], b: ['frank', 'serene', 'abundant'], ok: 'candid and frank', bad: ['volatile and serene', 'meagre and abundant', 'candid and abundant'], why: '"Candid" and "frank" both mean open and direct. "Volatile" and "serene" are opposites, as are "meagre" and "abundant".' },
@@ -62,11 +62,11 @@
   ];
   const ANTS = [
     { w: 'TACITURN', ok: 'Forthcoming', bad: ['Reticent', 'Methodical', 'Equivocal'], why: '"Taciturn" means reserved and uncommunicative. "Forthcoming" (willing to share information) is its opposite. "Reticent" is a near-synonym.' },
-    { w: 'FRUGAL', ok: 'Extravagant', bad: ['Economical', 'Austere', 'Prudent'], why: '"Frugal" means sparing with money; "extravagant" means spending freely. The other three describe careful or sparing behaviour.' },
+    { w: 'EXTRAVAGANT', ok: 'Economical', bad: ['Lavish', 'Austere', 'Flamboyant'], why: '"Extravagant" means spending freely; "economical" means careful with money. "Lavish" is a near-synonym.' },
     { w: 'AMBIGUOUS', ok: 'Unequivocal', bad: ['Vague', 'Nuanced', 'Tentative'], why: '"Ambiguous" means open to more than one reading; "unequivocal" means having only one possible meaning. "Vague" is close to ambiguous, not opposite.' },
     { w: 'TRANSIENT', ok: 'Permanent', bad: ['Fleeting', 'Gradual', 'Erratic'], why: '"Transient" means lasting only a short time; "permanent" is its opposite. "Fleeting" is a near-synonym.' },
-    { w: 'CANDID', ok: 'Evasive', bad: ['Frank', 'Blunt', 'Informal'], why: '"Candid" means open and honest; "evasive" means avoiding a direct answer. "Frank" and "blunt" point the same way as candid.' },
-    { w: 'MEAGRE', ok: 'Ample', bad: ['Scant', 'Modest', 'Frugal'], why: '"Meagre" means small in quantity; "ample" means more than enough. "Scant" is a near-synonym of meagre.' }
+    { w: 'FORTHRIGHT', ok: 'Evasive', bad: ['Frank', 'Blunt', 'Informal'], why: '"Forthright" means direct and honest; "evasive" means avoiding a direct answer. "Frank" and "blunt" point the same way as forthright.' },
+    { w: 'SCANT', ok: 'Ample', bad: ['Slight', 'Modest', 'Sparing'], why: '"Scant" means barely enough; "ample" means more than enough. "Slight" points the same way as scant.' }
   ];
   const DEDS = [
     { p: 'Organisations rarely fail because they lack data; they fail because analytical output is divorced from decision ownership. Commissioning additional research when governance is unclear increases reporting volume without improving commercial outcomes.', q: 'Assuming the passage is strictly true, which conclusion necessarily follows?', ok: 'Commissioning new research under unclear governance will increase reporting output without improving commercial results.', bad: ['Increasing data volume automatically improves commercial outcomes when governance is clear.', 'Most organisations need fewer analysts and more senior commercial managers.', 'Commercial outcomes depend entirely on research commissioning budgets.'], why: 'Only the first option restates what the passage supports. The others either assume the reverse of the passage holds or introduce claims it never makes.' },
@@ -89,7 +89,7 @@
     return mk({ battery: 'verbal', sub: 'Deductive reasoning', stimulusHTML: `<div class='dp-passage'><small>Passage</small><p>${esc(it.p)}</p></div>`, prompt: it.q, options: [opt(it.ok, 1)].concat(it.bad.map((l) => opt(l, 0))), why: it.why });
   }
 
-  /* ---------- Numerical generators ---------- */
+  /* ---------- Legacy numerical generators ---------- */
   function numOpts(ok, cands, f) {
     f = f || fmt;
     const w = uniq(cands.filter((n) => Number.isFinite(n) && n > 0 && n !== ok));
@@ -180,12 +180,11 @@
     });
   }
 
-  /* ---------- Abstract generators ---------- */
+  /* ---------- Legacy abstract generators ---------- */
   function genSeries() {
     const pos0 = rnd(4), dir = pick([1, -1]), f0 = pick([true, false]), alt = pick([true, false]), up = pick([true, false]);
     const step = (i) => ({ pos: ((pos0 + dir * i) % 4 + 4) % 4, f: alt ? (i % 2 === 0 ? f0 : !f0) : f0, bars: up ? 1 + i : 5 - i });
     const s = [0, 1, 2, 3].map(step), ans = step(4);
-    const key = (x) => `${x.pos}|${x.f}|${x.bars}`;
     const lab = (x) => `${POSNAME[x.pos][0].toUpperCase()}${POSNAME[x.pos].slice(1)}, ${x.f ? 'filled' : 'hollow'}, ${x.bars} ${x.bars === 1 ? 'bar' : 'bars'}`;
     const wrongs = [{ pos: (ans.pos + 2) % 4, f: ans.f, bars: ans.bars }, { pos: ans.pos, f: !ans.f, bars: ans.bars }, { pos: ans.pos, f: ans.f, bars: up ? ans.bars - 1 : ans.bars + 1 }];
     const options = [opt(lab(ans), 1, { svg: tileSVG(ans.pos, ans.f, ans.bars, 84) })].concat(wrongs.map((x) => opt(lab(x), 0, { svg: tileSVG(x.pos, x.f, x.bars, 84) })));
@@ -294,284 +293,205 @@
     });
   }
 
+  /* ---------- Archetypes ---------- */
   const ARCH = {
-    architect: { name: 'The Bayesian Architect', quad: 'Evidence-first · Governance-led', tag: 'You verify before committing, and you build the controls that make decisions repeatable.', up: 'You separate real signal from noise and set up governance that prevents costly false positives.', down: 'Under time pressure, waiting for clean evidence can cost you first-mover tempo.' },
-    navigator: { name: 'The Systems Navigator', quad: 'Evidence-first · Autonomy-led', tag: 'You test your way to the answer, favouring live experiments over heavy process.', up: 'You turn ambiguous questions into falsifiable experiments and let teams find root causes quickly.', down: 'Stakeholders may need clearer signposts on where your autonomy ends and governance begins.' },
-    verifier: { name: 'The Deliberate Controller', quad: 'Speed-first · Governance-led', tag: 'You keep momentum, with clear owners, thresholds and accountability around every bet.', up: 'You keep work moving while every decision has an owner, a trigger and a capped downside.', down: 'Post-launch controls suit reversible decisions. Irreversible choices may deserve deeper checks first.' },
-    synthesiser: { name: 'The Rapid Synthesiser', quad: 'Speed-first · Autonomy-led', tag: 'You ship, learn and correct on live data rather than wait for certainty.', up: 'You unblock stalled teams and avoid analysis paralysis when directional signal is enough.', down: 'Quick fixes build analytical debt unless time is set aside to formalise the underlying model.' }
+    architect: { name: 'The Bayesian Architect', quad: 'Evidence-first · Governance-led', e: 1, g: 1, tag: 'You verify before committing, and you build the controls that make decisions repeatable.', up: 'You separate real signal from noise, and your decisions survive scrutiny.', down: 'Watch the cost of delay. Ask what a wrong answer costs against a late one, and set a deadline for certainty.' },
+    experimenter: { name: 'The Field Experimenter', quad: 'Evidence-first · Autonomy-led', e: 1, g: 0, tag: 'You want proof, but you would rather generate it quickly through small live tests than wait for sign-off.', up: 'You turn disagreements into tests, and you learn faster than committees do.', down: 'Tests without owners drift. Agree who decides, and what result would change their mind, before you start.' },
+    operator: { name: 'The Fast Operator', quad: 'Speed-first · Autonomy-led', e: 0, g: 0, tag: 'You act on the best read available, keep options open and correct course as you go.', up: 'You keep momentum when others stall, and you are comfortable owning the call.', down: 'Speed hides unrecorded assumptions. Write down the one fact that would make you reverse, and check it on a date.' },
+    steward: { name: 'The Accountable Steward', quad: 'Speed-first · Governance-led', e: 0, g: 1, tag: 'You move quickly, and you make sure someone named has accepted the risk.', up: 'You get decisions made and keep them traceable, so nobody is surprised later.', down: 'Sign-off can stand in for evidence. Ask what the signatory actually saw before they accepted the risk.' }
   };
-  const BATT = {
-    verbal: { idx: '01', name: 'Verbal & deductive logic', tip: 'Practise separating conclusions that must follow from those that only seem plausible, and widen your working vocabulary.' },
-    numerical: { idx: '02', name: 'Numerical & data fluency', tip: 'Work multi-step commercial problems by hand (rates, percentage change, revenue tables), and check the gaps in any sequence early.' },
-    abstract: { idx: '03', name: 'Abstract & diagrammatic', tip: 'Break each visual into single rules (position, fill, count) and trace each operator one step at a time.' },
-    style: { idx: '04', name: 'Decision style', tip: '' }
+  const archOf = (e, g) => (e >= 2 ? (g >= 2 ? 'architect' : 'experimenter') : (g >= 2 ? 'steward' : 'operator'));
+  const BAT = { verbal: 'Verbal', numerical: 'Numerical', abstract: 'Abstract', style: 'Decision style' };
+  const LEGACY = { verbal: [genPair, genAnt, genDed], numerical: [genSeq, genTable, genDelta, genRate, genPercent], abstract: [genSeries, genOdd, genFlow] };
+  const TIPS = {
+    verbal: 'Verbal: under the clock, restate the passage in your own words before you read the options, and treat "cannot say" as a real answer.',
+    numerical: 'Numerical: write the quantity you need before you calculate, and sanity-check the answer against the size of the inputs.',
+    abstract: 'Abstract: name each rule on its own (position, fill, count) and test options against one rule at a time.'
   };
 
-  function buildQuiz() {
-    const q = [genPair(), genAnt(), genDed(), genSeq(), pick([genTable, genDelta])(), pick([genRate, genPercent])(), genSeries(), genOdd(), genFlow()];
-    [0, 1, 2].forEach((s) => q.push(genScenario(draw('sc' + s, SCEN.filter((x) => x.slot === s)), s + 1)));
-    return q.map((it, i) => { it.n = i + 1; return it; });
+  function gensFor(b) {
+    const extra = (window.DPBankExtra && window.DPBankExtra[b]) || [];
+    return LEGACY[b].concat(extra);
+  }
+  function buildSet() {
+    const qs = [];
+    ['verbal', 'numerical', 'abstract'].forEach((b) => {
+      shuffle(gensFor(b)).slice(0, 3).forEach((f) => qs.push(f()));
+    });
+    [0, 1, 2].forEach((slot) => qs.push(genScenario(draw('scen' + slot, SCEN.filter((s) => s.slot === slot)), slot + 1)));
+    qs.forEach((q) => { if (!q.keepOrder) q.options = shuffle(q.options); });
+    return qs;
   }
 
-  /* ---------- State and flow ---------- */
-  const state = { mode: 'timed', name: '', quiz: [], i: 0, sel: null, order: [], res: [], timer: null, deadline: 0, t0: 0, challenger: null, sum: null };
-  const show = (v) => ['dpLanding', 'dpQuiz', 'dpResults'].forEach((id) => { $(id).hidden = id !== v; });
-  const toTop = () => { const h = $('dpTop'); if (h && h.scrollIntoView) h.scrollIntoView({ behavior: 'smooth', block: 'start' }); };
-  const fmtTime = (s) => (s >= 60 ? `${Math.floor(s / 60)}m ${String(s % 60).padStart(2, '0')}s` : `${s}s`);
-  const stopTimer = () => { if (state.timer) { clearInterval(state.timer); state.timer = null; } };
+  /* ---------- State ---------- */
+  let S = null;
+  const LET4 = ['A', 'B', 'C', 'D', 'E'];
+  const fmtT = (s) => `${Math.floor(s / 60)}:${String(Math.round(s % 60)).padStart(2, '0')}`;
+  const show = (id, on) => { $(id).hidden = !on; };
 
   function start() {
-    const el = $('dpName');
-    state.name = el && el.value.trim() ? el.value.trim().slice(0, 28) : '';
-    state.quiz = buildQuiz(); state.i = 0; state.res = []; state.sel = null;
-    show('dpQuiz'); renderQ(); toTop();
+    S = { mode: $('dpModeTimed').getAttribute('aria-checked') === 'true' ? 'timed' : 'untimed', name: $('dpName').value.trim().slice(0, 28), qs: buildSet(), i: 0, ans: [], sel: -1, left: TIME, t0: 0, took: 0, timer: null };
+    show('dpLanding', false); show('dpResults', false); show('dpQuiz', true);
+    S.t0 = Date.now();
+    render();
+    window.scrollTo({ top: $('dpTop').offsetTop, behavior: 'smooth' });
   }
-  function abort() { stopTimer(); show('dpLanding'); toTop(); }
 
-  function renderQ() {
-    stopTimer();
-    const q = state.quiz[state.i], b = BATT[q.battery];
-    state.sel = null; state.t0 = Date.now(); state.order = shuffle(q.options);
-    $('dpNotice').hidden = true;
-    $('dpBattery').textContent = `${b.idx} · ${b.name}`;
+  function render() {
+    const q = S.qs[S.i], n = S.qs.length, timed = S.mode === 'timed' && q.scored;
+    S.sel = -1;
+    $('dpBattery').textContent = BAT[q.battery];
     $('dpSub').textContent = q.sub;
-    $('dpCount').textContent = `${state.i + 1} of ${state.quiz.length}`;
-    $('dpDots').innerHTML = state.quiz.map((_, i) => `<span class='${i < state.i ? 'done' : i === state.i ? 'now' : ''}'></span>`).join('');
-    $('dpStyleNote').hidden = q.scored;
-    const st = $('dpStim');
-    st.innerHTML = q.stimulusHTML; st.hidden = !q.stimulusHTML;
+    $('dpCount').textContent = `${S.i + 1} / ${n}`;
+    $('dpDots').innerHTML = S.qs.map((x, i) => `<span class='${i < S.i ? 'done' : i === S.i ? 'now' : ''}'></span>`).join('');
+    show('dpStyleNote', !q.scored && S.i === 9);
+    $('dpStim').innerHTML = q.stimulusHTML; show('dpStim', !!q.stimulusHTML);
     $('dpPrompt').textContent = q.prompt;
-    const box = $('dpOpts');
-    box.className = 'dp-opts' + (q.visual ? ' visual' : '');
-    box.innerHTML = state.order.map((o, i) => `<button type='button' role='radio' aria-checked='false' data-i='${i}' class='dp-opt'><span class='dp-letter'>${String.fromCharCode(65 + i)}</span>${q.visual ? `<span class='dp-vis'>${o.svg}</span><span class='dp-vlabel'>${esc(o.label)}</span>` : `<span class='dp-otext'>${esc(o.label)}</span>`}</button>`).join('');
-    $('dpGoText').textContent = state.i === state.quiz.length - 1 ? 'See my results' : 'Confirm';
-    timerSetup(q);
-  }
-  function timerSetup(q) {
-    const wrap = $('dpClockWrap'), bar = $('dpBar'), live = $('dpLive'), clock = $('dpClock');
-    live.textContent = '';
-    if (state.mode === 'timed' && q.scored) {
-      wrap.hidden = false; $('dpTrack').hidden = false;
-      state.deadline = Date.now() + TIME * 1000;
-      let warned = false;
-      const tick = () => {
-        const rem = Math.max(0, Math.ceil((state.deadline - Date.now()) / 1000));
-        clock.textContent = `0:${String(rem).padStart(2, '0')}`;
-        bar.style.width = `${rem / TIME * 100}%`;
-        bar.className = rem <= 10 ? 'low' : '';
-        if (rem <= 10 && !warned) { warned = true; live.textContent = '10 seconds left'; }
-        if (rem <= 0) { stopTimer(); record(true); }
-      };
-      tick(); state.timer = setInterval(tick, 250);
-    } else {
-      wrap.hidden = true; $('dpTrack').hidden = true;
+    const vis = q.options.some((o) => o.svg);
+    $('dpOpts').className = 'dp-opts' + (vis ? ' visual' : '');
+    $('dpOpts').innerHTML = q.options.map((o, i) => `<button type='button' class='dp-opt' role='radio' aria-checked='false' data-i='${i}'><span class='dp-letter' aria-hidden='true'>${LET4[i]}</span>${o.svg ? `<span class='dp-vis'>${o.svg}</span><span class='dp-vlabel'>${esc(o.label)}</span>` : `<span>${esc(o.label)}</span>`}</button>`).join('');
+    $('dpGoText').textContent = S.i === n - 1 ? 'See results' : 'Confirm';
+    show('dpNotice', false);
+    $('dpClockWrap').hidden = !timed; $('dpTrack').hidden = !timed;
+    clearInterval(S.timer);
+    if (timed) {
+      S.left = TIME; tick();
+      const end = Date.now() + TIME * 1000;
+      S.timer = setInterval(() => { S.left = Math.max(0, (end - Date.now()) / 1000); tick(); if (S.left <= 0) { clearInterval(S.timer); commit(true); } }, 200);
     }
+    $('dpLive').textContent = `Question ${S.i + 1} of ${n}. ${q.prompt}`;
   }
-  function record(timedOut) {
-    const q = state.quiz[state.i];
-    const o = state.sel;
-    state.res.push({ o: o, ok: q.scored ? !!(o && o.ok) : null, sec: timedOut ? TIME : Math.max(1, Math.round((Date.now() - state.t0) / 1000)), out: !!(timedOut && !o) });
-    if (state.i < state.quiz.length - 1) { state.i++; renderQ(); toTop(); } else { finish(); }
+  function tick() {
+    $('dpClock').textContent = fmtT(Math.ceil(S.left));
+    $('dpBar').style.width = (S.left / TIME * 100) + '%';
+    $('dpBar').classList.toggle('low', S.left <= 10);
   }
-  function confirmQ() {
-    if (!state.sel) { const n = $('dpNotice'); n.textContent = 'Choose an answer to continue.'; n.hidden = false; return; }
-    stopTimer(); record(false);
+  function choose(i) {
+    S.sel = i;
+    Array.prototype.forEach.call($('dpOpts').children, (b, k) => { b.classList.toggle('sel', k === i); b.setAttribute('aria-checked', k === i ? 'true' : 'false'); });
+    show('dpNotice', false);
   }
-
-  /* ---------- Scoring ---------- */
-  const FR = [0.1, 0.37, 0.63, 0.9];
-  function summarise() {
-    const sc = { verbal: 0, numerical: 0, abstract: 0 };
-    let sec = 0, ev = 0, gv = 0;
-    state.quiz.forEach((q, i) => {
-      const r = state.res[i];
-      if (q.scored) { sec += r.sec; if (r.ok) sc[q.battery]++; }
-      else if (r.o) { ev += r.o.e; gv += r.o.g; }
-    });
-    const code = ev >= 2 ? (gv >= 2 ? 'architect' : 'navigator') : (gv >= 2 ? 'verifier' : 'synthesiser');
-    return { name: state.name, mode: state.mode, verbal: sc.verbal, numerical: sc.numerical, abstract: sc.abstract, total: sc.verbal + sc.numerical + sc.abstract, sec: sec, ev: ev, gv: gv, code: code, arch: ARCH[code] };
-  }
-  const modeWord = (m) => (m === 'timed' ? 'timed' : 'untimed');
-
-  function mapSVG(s) {
-    const on = s.code;
-    const cell = (code, x, y, l1, l2) => `<rect x='${x}' y='${y}' width='96' height='96' rx='14' class='${on === code ? 'on' : ''}'/><text x='${x + 48}' y='${y + 44}' text-anchor='middle' class='${on === code ? 'on' : ''}'>${l1}</text><text x='${x + 48}' y='${y + 60}' text-anchor='middle' class='${on === code ? 'on' : ''}'>${l2}</text>`;
-    const px = 8 + (1 - FR[s.ev]) * 184, py = 8 + (1 - FR[s.gv]) * 184;
-    return `<svg viewBox='0 0 208 232' role='img' aria-label='Decision style map. You are in the ${esc(s.arch.quad)} quadrant.'><g transform='translate(0,18)'>${cell('architect', 4, 4, 'Evidence', 'Governance')}${cell('verifier', 108, 4, 'Speed', 'Governance')}${cell('navigator', 4, 108, 'Evidence', 'Autonomy')}${cell('synthesiser', 108, 108, 'Speed', 'Autonomy')}<circle cx='${px + 4}' cy='${py + 4}' r='8' class='pt'/></g><text x='104' y='12' text-anchor='middle' class='ax'>GOVERNANCE</text><text x='104' y='228' text-anchor='middle' class='ax'>AUTONOMY</text></svg>`;
+  function commit(timedOut) {
+    const q = S.qs[S.i];
+    if (S.sel < 0 && !timedOut) { $('dpNotice').textContent = 'Pick an answer first.'; show('dpNotice', true); return; }
+    clearInterval(S.timer);
+    S.ans.push({ sel: timedOut && S.sel < 0 ? -1 : S.sel, out: !!timedOut && S.sel < 0 });
+    if (S.i < S.qs.length - 1) { S.i++; render(); } else { S.took = (Date.now() - S.t0) / 1000; finish(); }
   }
 
+  /* ---------- Results ---------- */
   function finish() {
-    const s = summarise(); state.sum = s; show('dpResults');
-    $('rScore').textContent = String(s.total);
-    $('rTime').textContent = `${modeWord(s.mode)[0].toUpperCase()}${modeWord(s.mode).slice(1)} · reasoning items took ${fmtTime(s.sec)}`;
-    const groups = ['verbal', 'numerical', 'abstract'];
-    $('rPips').innerHTML = groups.map((g) => `<span class='grp'>${state.quiz.map((q, i) => (q.battery === g ? `<i class='${state.res[i].ok ? 'ok' : 'no'}'></i>` : '')).join('')}</span>`).join('');
-    $('rRows').innerHTML = groups.map((g) => `<li><span>${BATT[g].name}</span><b>${s[g]} / 3</b></li>`).join('');
-    $('rStyle').textContent = s.arch.name;
-    $('rQuad').textContent = s.arch.quad;
-    $('rTag').textContent = s.arch.tag;
-    $('rMap').innerHTML = mapSVG(s);
-    $('rPicks').innerHTML = `<li>Evidence-first in <b>${s.ev} of 3</b> scenarios</li><li>Governance-led in <b>${s.gv} of 3</b> scenarios</li>`;
-    s.url = challengeUrl(s);
-    s.share = `Reasoning score: ${s.total}/9 (${modeWord(s.mode)}). Decision style: ${s.arch.name} (${s.arch.quad}). Can you beat my score? ${s.url}`;
-    $('dpShare').value = s.share;
-    compare(s); plan(s); review(); toTop();
+    show('dpQuiz', false); show('dpResults', true);
+    const per = { verbal: 0, numerical: 0, abstract: 0 }; let score = 0, e = 0, g = 0;
+    S.qs.forEach((q, i) => {
+      const a = S.ans[i], o = a.sel >= 0 ? q.options[a.sel] : null;
+      if (q.scored) { if (o && o.ok) { score++; per[q.battery]++; } } else if (o) { e += o.e; g += o.g; }
+    });
+    const key = archOf(e, g), A = ARCH[key];
+    S.result = { score: score, per: per, key: key, e: e, g: g };
+    $('rScore').textContent = score;
+    $('rTime').textContent = S.mode === 'timed' ? `Timed mode. Total time ${fmtT(S.took)}.` : `Untimed mode. Total time ${fmtT(S.took)}.`;
+    $('rPips').innerHTML = ['verbal', 'numerical', 'abstract'].map((b) => `<span class='grp'>${[0, 1, 2].map((k) => `<i class='${k < per[b] ? 'ok' : ''}'></i>`).join('')}</span>`).join('');
+    $('rRows').innerHTML = ['verbal', 'numerical', 'abstract'].map((b) => `<li><span>${BAT[b]}</span><b>${per[b]} / 3</b></li>`).join('');
+    $('rStyle').textContent = A.name; $('rQuad').textContent = A.quad; $('rTag').textContent = A.tag;
+    $('rMap').innerHTML = mapSVG(e, g, key);
+    $('rPicks').innerHTML = S.qs.filter((q) => !q.scored).map((q, i) => { const a = S.ans[9 + i]; return `<li>Scenario ${i + 1}: <b>${esc(q.options[a.sel].tag)}</b></li>`; }).join('');
+    const weakest = ['verbal', 'numerical', 'abstract'].sort((a, b) => per[a] - per[b])[0];
+    $('dpPlan').innerHTML = `<p><b>Reasoning.</b> ${score >= 7 ? 'A strong practice score.' : score >= 4 ? 'A solid base with room to move.' : 'A tough set, and the explanations below are the useful part.'} ${per[weakest] < 3 ? TIPS[weakest] : 'You dropped nothing in any battery, so try the timed mode if you have not.'}</p><p><b>Decision style.</b> ${esc(A.up)} ${esc(A.down)}</p><p>This is a practice tool, not a normed test. Treat a single attempt as a prompt for reflection.</p>`;
+    buildReview();
+    const url = challengeURL();
+    $('dpShare').value = shareText(url);
+    renderCompare();
+    window.scrollTo({ top: $('dpTop').offsetTop, behavior: 'smooth' });
   }
-
-  function compare(s) {
-    const el = $('dpCompare'), c = state.challenger;
-    if (!c) { el.hidden = true; return; }
-    const d = s.total - c.total;
-    const line1 = d > 0 ? `You beat ${c.user} by ${d} ${d > 1 ? 'points' : 'point'}.` : d === 0 ? `You matched ${c.user} on ${c.total}/9.` : `${c.user} leads by ${-d} ${d < -1 ? 'points' : 'point'}.`;
-    const mm = c.mode && c.mode !== s.mode ? ` ${c.user} took it ${modeWord(c.mode)} and you took it ${modeWord(s.mode)}, so treat this loosely.` : '';
-    const same = c.code === s.code;
-    el.innerHTML = `<p class='dp-lab'>Head to head</p><h3>${esc(line1)}</h3><p>Reasoning score: you ${s.total}/9, ${esc(c.user)} ${c.total}/9.${esc(mm)}</p><p>Decision style: ${same ? 'you share the same style, ' + esc(s.arch.name) + '.' : 'you are ' + esc(s.arch.name) + ' and ' + esc(c.user) + ' is ' + esc(ARCH[c.code].name) + '. Styles are not ranked.'}</p><p class='fine'>Challenge links are self-reported and can be edited by anyone.</p>`;
-    el.hidden = false;
+  function mapSVG(e, g, key) {
+    const q = { experimenter: [10, 10], architect: [150, 10], operator: [10, 115], steward: [150, 115] };
+    const label = { experimenter: ['Evidence-first', 'Autonomy-led'], architect: ['Evidence-first', 'Governance-led'], operator: ['Speed-first', 'Autonomy-led'], steward: ['Speed-first', 'Governance-led'] };
+    const rects = Object.keys(q).map((k) => `<rect x='${q[k][0]}' y='${q[k][1]}' width='130' height='95' rx='14' class='${k === key ? 'on' : ''}'/><text x='${q[k][0] + 65}' y='${q[k][1] + 44}' text-anchor='middle' class='${k === key ? 'on' : ''}'>${label[k][0]}</text><text x='${q[k][0] + 65}' y='${q[k][1] + 60}' text-anchor='middle' class='${k === key ? 'on' : ''}'>${label[k][1]}</text>`).join('');
+    const cx = 30 + (g / 3) * 220, cy = 195 - (e / 3) * 160;
+    return `<svg viewBox='0 0 290 220' role='img' aria-label='Decision style map. Evidence score ${e} of 3, governance score ${g} of 3.'>${rects}<circle class='pt' cx='${cx}' cy='${cy}' r='9'/></svg>`;
   }
-  function plan(s) {
-    const rows = ['verbal', 'numerical', 'abstract'].map((k) => ({ k: k, n: s[k] })).sort((a, b) => a.n - b.n);
-    let h;
-    if (s.total === 9) h = `<p><b>All nine correct.</b> ${s.mode === 'timed' ? 'Try to hold that while finishing faster.' : 'Retake it timed to see how the score holds under a clock.'}</p>`;
-    else if (rows[0].n === rows[2].n) h = `<p><b>An even spread.</b> No single weak area. The review below shows which items cost you points.</p>`;
-    else h = `<p><b>Weakest area: ${esc(BATT[rows[0].k].name)} (${rows[0].n}/3).</b> ${esc(BATT[rows[0].k].tip)}</p>`;
-    h += `<p><b>Where your style helps.</b> ${esc(s.arch.up)}</p><p><b>Where it can mislead.</b> ${esc(s.arch.down)}</p>`;
-    $('dpPlan').innerHTML = h;
-  }
-  function review() {
-    $('dpReview').innerHTML = state.quiz.map((q, i) => {
-      const r = state.res[i], right = q.options.filter((o) => o.ok)[0];
-      let tag, body;
-      if (q.scored) {
-        tag = r.ok ? ['ok', 'Correct'] : r.out ? ['no', 'No answer'] : ['no', 'Incorrect'];
-        body = `<p><b>Your answer:</b> ${r.o ? esc(r.o.label) : 'None (time ran out)'}</p><p><b>Correct answer:</b> ${esc(right.label)}</p>`;
-      } else {
-        tag = ['st', 'Style'];
-        body = `<p><b>Your choice:</b> ${r.o ? esc(r.o.label) : 'None'}</p>${r.o ? `<p><b>Quadrant:</b> ${esc(r.o.tag)}</p>` : ''}`;
-      }
-      return `<details class='dp-item'><summary><span class='n'>${String(q.n).padStart(2, '0')}</span><span class='t'>${esc(q.sub)}</span><span class='s ${tag[0]}'>${tag[1]}</span></summary><div class='b'><p class='q'>${esc(q.prompt)}</p>${body}<p>${esc(q.why)}</p></div></details>`;
+  function buildReview() {
+    $('dpReview').innerHTML = S.qs.map((q, i) => {
+      const a = S.ans[i], chosen = a.sel >= 0 ? q.options[a.sel] : null, right = q.options.find((o) => o.ok);
+      let st = '<span class="s">Style</span>';
+      if (q.scored) st = a.out ? '<span class="s no">Timed out</span>' : (chosen && chosen.ok ? '<span class="s ok">Correct</span>' : '<span class="s no">Missed</span>');
+      const you = chosen ? esc(chosen.label) + (chosen.tag ? ` <i>(${esc(chosen.tag)})</i>` : '') : 'No answer';
+      return `<details class='dp-item'><summary><span class='n'>${i + 1}</span><span class='t'>${esc(BAT[q.battery])} · ${esc(q.sub)}</span>${st}</summary><div class='b'><p class='q'>${esc(q.prompt)}</p><p><b>Your answer:</b> ${you}</p>${q.scored ? `<p><b>Correct answer:</b> ${esc(right.label)}</p>` : ''}<p>${esc(q.why)}</p></div></details>`;
     }).join('');
   }
 
-  /* ---------- Challenge links ---------- */
-  function challengeUrl(s) {
-    const p = new URLSearchParams();
-    p.set('v', s.verbal); p.set('n', s.numerical); p.set('a', s.abstract);
-    p.set('q', s.code); p.set('t', s.sec); p.set('m', s.mode === 'timed' ? 't' : 'u');
-    if (s.name) p.set('u', s.name);
-    return window.location.origin + window.location.pathname + '?' + p.toString();
+  /* ---------- Share, challenge links, scorecard ---------- */
+  function challengeURL() {
+    const p = new URLSearchParams({ s: S.result.score, a: S.result.key });
+    if (S.name) p.set('n', S.name);
+    return `${location.origin}${location.pathname}?${p.toString()}`;
   }
-  function readChallenge() {
-    const p = new URLSearchParams(window.location.search);
-    if (!(p.has('v') && p.has('n') && p.has('a'))) return;
-    const cl = (x, lo, hi) => { const n = parseInt(x, 10); return isNaN(n) ? lo : Math.min(hi, Math.max(lo, n)); };
-    const code = p.get('q') || p.get('s');
-    const c = { user: (p.get('u') || 'A colleague').slice(0, 28), total: cl(p.get('v'), 0, 3) + cl(p.get('n'), 0, 3) + cl(p.get('a'), 0, 3), code: ARCH[code] ? code : 'architect', mode: p.get('m') === 't' ? 'timed' : p.get('m') === 'u' ? 'untimed' : '' };
-    state.challenger = c;
-    const el = $('dpBannerText');
-    el.textContent = '';
-    const b = document.createElement('strong'); b.textContent = c.user;
-    el.appendChild(b);
-    el.appendChild(document.createTextNode(` scored ${c.total}/9${c.mode ? ' (' + c.mode + ')' : ''}. Their decision style is ${ARCH[c.code].name}. Take it and compare.`));
-    $('dpBanner').hidden = false;
+  function shareText(url) {
+    const A = ARCH[S.result.key];
+    return `I scored ${S.result.score}/9 on Phil Pegram's reasoning diagnostic, and my decision style is ${A.name}. Think you can beat it?\n${url}`;
   }
-
-  /* ---------- Sharing ---------- */
-  function copyShare() {
-    const s = state.sum; if (!s) return;
-    const ta = $('dpShare'), toast = $('dpToast');
-    const done = () => { toast.hidden = false; setTimeout(() => { toast.hidden = true; }, 3000); };
-    const old = () => { ta.select(); try { document.execCommand('copy'); done(); } catch (e) { /* ignore */ } };
-    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(s.share).then(done, old); else old();
+  function renderCompare() {
+    const p = new URLSearchParams(location.search), s = parseInt(p.get('s'), 10), a = p.get('a');
+    if (!(s >= 0 && s <= 9) || !ARCH[a]) { show('dpCompare', false); return; }
+    const who = (p.get('n') || 'Your challenger').slice(0, 28), d = S.result.score - s;
+    $('dpCompare').innerHTML = `<h3>${esc(who)} scored ${s}/9</h3><p>You scored ${S.result.score}/9. ${d > 0 ? `You are ${d} ahead.` : d < 0 ? `They are ${-d} ahead.` : 'It is a tie.'}</p><p>${esc(who)}'s style: ${esc(ARCH[a].name)}. Yours: ${esc(ARCH[S.result.key].name)}. Neither is better.</p>`;
+    show('dpCompare', true);
   }
-  const openWin = (u) => window.open(u, '_blank', 'noopener,noreferrer');
-  const shareLI = () => { if (state.sum) openWin('https://www.linkedin.com/sharing/share-offsite/?url=' + encodeURIComponent(state.sum.url)); };
-  const shareX = () => { const s = state.sum; if (s) openWin('https://twitter.com/intent/tweet?text=' + encodeURIComponent(`Reasoning score ${s.total}/9. Decision style: ${s.arch.name}. Can you beat it?`) + '&url=' + encodeURIComponent(s.url)); };
-
-  function wrapText(ctx, text, x, y, w, lh) {
-    let line = '';
-    text.split(' ').forEach((word) => {
-      const t = line ? line + ' ' + word : word;
-      if (ctx.measureText(t).width > w && line) { ctx.fillText(line, x, y); line = word; y += lh; } else line = t;
-    });
-    if (line) ctx.fillText(line, x, y);
+  function toast(msg) { const t = $('dpToast'); t.textContent = msg; t.hidden = false; clearTimeout(toast.h); toast.h = setTimeout(() => { t.hidden = true; }, 2500); }
+  function copyText(txt, msg) {
+    const done = () => toast(msg);
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(txt).then(done, () => { $('dpShare').select(); document.execCommand('copy'); done(); });
+    else { $('dpShare').select(); document.execCommand('copy'); done(); }
   }
-  function png() {
-    const s = state.sum; if (!s) return;
-    const go = () => {
-      const c = $('dpCanvas'), x = c.getContext('2d'), F = 'Switzer, system-ui, -apple-system, Segoe UI, sans-serif';
-      const rr = (a, b, w, h, r, f) => { x.fillStyle = f; x.beginPath(); x.moveTo(a + r, b); x.arcTo(a + w, b, a + w, b + h, r); x.arcTo(a + w, b + h, a, b + h, r); x.arcTo(a, b + h, a, b, r); x.arcTo(a, b, a + w, b, r); x.closePath(); x.fill(); };
-      x.clearRect(0, 0, 1200, 630); x.fillStyle = '#1c2240'; x.fillRect(0, 0, 1200, 630);
-      x.textBaseline = 'alphabetic'; x.textAlign = 'left';
-      x.fillStyle = '#f49ab8'; x.font = '600 22px ' + F; x.fillText('PHILPEGRAM.COM / REASONING & DECISION-STYLE DIAGNOSTIC', 56, 64);
-      x.fillStyle = '#bbc0d0'; x.font = '500 22px ' + F; x.fillText(`${s.name || 'Anonymous'} · ${new Date().toLocaleDateString('en-GB', { month: 'short', year: 'numeric' })} · ${modeWord(s.mode)}`, 56, 98);
-      rr(56, 130, 500, 410, 28, '#151a32');
-      x.fillStyle = '#bbc0d0'; x.font = '600 18px ' + F; x.fillText('1 · REASONING SCORE', 88, 178);
-      x.fillStyle = '#f49ab8'; x.font = '700 150px ' + F; x.fillText(String(s.total), 88, 330);
-      const w = x.measureText(String(s.total)).width;
-      x.fillStyle = '#bbc0d0'; x.font = '500 48px ' + F; x.fillText('/ 9', 88 + w + 14, 330);
-      x.font = '500 20px ' + F; x.fillText(`Reasoning items took ${fmtTime(s.sec)}`, 88, 366);
-      [['Verbal & deductive', s.verbal], ['Numerical & data', s.numerical], ['Abstract & diagrammatic', s.abstract]].forEach((r, i) => {
-        const y = 420 + i * 40;
-        x.fillStyle = '#f7f4ec'; x.font = '500 19px ' + F; x.fillText(r[0], 88, y);
-        rr(300, y - 15, 150, 12, 6, 'rgba(255,255,255,0.12)'); rr(300, y - 15, 150 * r[1] / 3, 12, 6, '#f49ab8');
-        x.fillStyle = '#f7f4ec'; x.font = '600 19px ' + F; x.fillText(`${r[1]}/3`, 468, y);
-      });
-      rr(600, 130, 544, 410, 28, '#151a32');
-      x.fillStyle = '#bbc0d0'; x.font = '600 18px ' + F; x.fillText('2 · DECISION STYLE (NOT SCORED)', 632, 178);
-      x.fillStyle = '#f7f4ec'; x.font = '700 38px ' + F; x.fillText(s.arch.name, 632, 232);
-      x.fillStyle = '#f49ab8'; x.font = '600 20px ' + F; x.fillText(s.arch.quad, 632, 266);
-      x.fillStyle = '#bbc0d0'; x.font = '400 20px ' + F; wrapText(x, s.arch.tag, 632, 304, 270, 28);
-      const q = { architect: [0, 0], verifier: [1, 0], navigator: [0, 1], synthesiser: [1, 1] };
-      Object.keys(q).forEach((k) => { rr(930 + q[k][0] * 98, 190 + q[k][1] * 98, 92, 92, 14, k === s.code ? '#f49ab8' : '#262d52'); });
-      const px = 930 + (1 - FR[s.ev]) * 190 + 3, py = 190 + (1 - FR[s.gv]) * 190 + 3;
-      x.fillStyle = '#f7f4ec'; x.beginPath(); x.arc(px, py, 9, 0, 7); x.fill();
-      x.fillStyle = '#bbc0d0'; x.font = '500 15px ' + F; x.textAlign = 'center';
-      x.fillText('GOVERNANCE', 1027, 180); x.fillText('AUTONOMY', 1027, 402);
-      x.textAlign = 'left'; x.fillText('EVIDENCE', 930, 424); x.textAlign = 'right'; x.fillText('SPEED', 1124, 424);
-      x.textAlign = 'left'; x.fillStyle = '#f7f4ec'; x.font = '500 20px ' + F;
-      x.fillText(`Evidence-first in ${s.ev} of 3 · Governance-led in ${s.gv} of 3`, 632, 480);
-      x.fillStyle = '#bbc0d0'; x.font = '400 18px ' + F; x.fillText('No quadrant is better than another.', 632, 510);
-      x.fillStyle = '#f7f4ec'; x.font = '600 24px ' + F; x.fillText('philpegram.com/decision-profile', 56, 588);
-      c.toBlob((blob) => {
-        if (!blob) return;
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(blob); a.download = 'decision-profile-scorecard.png';
-        document.body.appendChild(a); a.click(); document.body.removeChild(a);
-        setTimeout(() => URL.revokeObjectURL(a.href), 2000);
-      }, 'image/png');
-    };
-    if (document.fonts && document.fonts.ready) document.fonts.ready.then(go, go); else go();
+  function openShare(base) { window.open(base, '_blank', 'noopener'); }
+  function drawCard() {
+    const c = $('dpCanvas'), x = c.getContext('2d'), A = ARCH[S.result.key];
+    x.fillStyle = '#1c2240'; x.fillRect(0, 0, 1200, 630);
+    x.fillStyle = '#f49ab8'; x.font = '600 30px system-ui, sans-serif'; x.fillText('Reasoning & Decision-Style Diagnostic', 70, 90);
+    x.fillStyle = '#f7f4ec'; x.font = '600 34px system-ui, sans-serif'; x.fillText(S.name || 'My scorecard', 70, 150);
+    x.fillStyle = '#f49ab8'; x.font = '700 240px system-ui, sans-serif'; x.fillText(String(S.result.score), 70, 390);
+    x.fillStyle = '#a9aecb'; x.font = '500 70px system-ui, sans-serif'; x.fillText('/ 9', S.result.score > 9 ? 330 : 200, 390);
+    x.fillStyle = '#f7f4ec'; x.font = '600 28px system-ui, sans-serif';
+    ['verbal', 'numerical', 'abstract'].forEach((b, i) => x.fillText(`${BAT[b]}  ${S.result.per[b]}/3`, 70 + i * 230, 450));
+    x.font = '700 46px system-ui, sans-serif'; x.fillText(A.name, 70, 540);
+    x.fillStyle = '#a9aecb'; x.font = '500 26px system-ui, sans-serif'; x.fillText(A.quad + '   ·   philpegram.com/decision-profile', 70, 585);
+  }
+  function download() {
+    drawCard();
+    $('dpCanvas').toBlob((b) => { const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = 'reasoning-scorecard.png'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 2000); });
   }
 
   /* ---------- Wiring ---------- */
-  function setMode(m) {
-    state.mode = m;
-    [['timed', 'dpModeTimed'], ['untimed', 'dpModeUntimed']].forEach((x) => { const b = $(x[1]); b.classList.toggle('on', x[0] === m); b.setAttribute('aria-checked', x[0] === m ? 'true' : 'false'); });
-    $('dpModeHint').textContent = m === 'timed' ? '45 seconds per reasoning question. The three scenarios are never timed.' : 'No clock. Take as long as you like.';
+  function setMode(timed) {
+    $('dpModeTimed').classList.toggle('on', timed); $('dpModeUntimed').classList.toggle('on', !timed);
+    $('dpModeTimed').setAttribute('aria-checked', timed); $('dpModeUntimed').setAttribute('aria-checked', !timed);
+    $('dpModeHint').textContent = timed ? `${TIME} seconds per reasoning question. The three scenarios are never timed. Allow about seven minutes.` : 'No clock. Take as long as you need. The three scenarios are never timed.';
   }
-  document.addEventListener('DOMContentLoaded', () => {
-    $('dpModeTimed').addEventListener('click', () => setMode('timed'));
-    $('dpModeUntimed').addEventListener('click', () => setMode('untimed'));
+  function init() {
+    $('dpModeTimed').addEventListener('click', () => setMode(true));
+    $('dpModeUntimed').addEventListener('click', () => setMode(false));
     $('dpStart').addEventListener('click', start);
-    $('dpRestart').addEventListener('click', abort);
-    $('dpGo').addEventListener('click', confirmQ);
-    $('dpRetake').addEventListener('click', abort);
-    $('dpOpen').addEventListener('click', () => document.querySelectorAll('#dpReview details').forEach((d) => { d.open = true; }));
-    $('dpShut').addEventListener('click', () => document.querySelectorAll('#dpReview details').forEach((d) => { d.open = false; }));
-    ['dpCopy', 'dpCopy2'].forEach((id) => $(id).addEventListener('click', copyShare));
-    ['dpPng', 'dpPng2'].forEach((id) => $(id).addEventListener('click', png));
-    $('dpLI').addEventListener('click', shareLI);
-    $('dpX').addEventListener('click', shareX);
-    $('dpAccept').addEventListener('click', () => $('dpStartCard').scrollIntoView({ behavior: 'smooth' }));
-    $('dpClose').addEventListener('click', () => { $('dpBanner').hidden = true; });
-    $('dpOpts').addEventListener('click', (e) => {
-      const btn = e.target.closest('button[data-i]');
-      if (!btn) return;
-      state.sel = state.order[+btn.getAttribute('data-i')];
-      $('dpOpts').querySelectorAll('button').forEach((b) => { const on = b === btn; b.classList.toggle('sel', on); b.setAttribute('aria-checked', on ? 'true' : 'false'); });
-      $('dpNotice').hidden = true;
+    $('dpOpts').addEventListener('click', (ev) => { const b = ev.target.closest('.dp-opt'); if (b) choose(+b.dataset.i); });
+    $('dpGo').addEventListener('click', () => commit(false));
+    $('dpRestart').addEventListener('click', () => { clearInterval(S && S.timer); show('dpQuiz', false); show('dpLanding', true); });
+    $('dpRetake').addEventListener('click', () => { show('dpResults', false); show('dpLanding', true); window.scrollTo({ top: $('dpTop').offsetTop, behavior: 'smooth' }); });
+    $('dpCopy').addEventListener('click', () => copyText(challengeURL(), 'Challenge link copied.'));
+    $('dpCopy2').addEventListener('click', () => copyText($('dpShare').value, 'Copied to clipboard.'));
+    $('dpLI').addEventListener('click', () => openShare('https://www.linkedin.com/sharing/share-offsite/?url=' + encodeURIComponent(challengeURL())));
+    $('dpX').addEventListener('click', () => openShare('https://twitter.com/intent/tweet?text=' + encodeURIComponent($('dpShare').value)));
+    $('dpPng').addEventListener('click', download); $('dpPng2').addEventListener('click', download);
+    $('dpOpen').addEventListener('click', () => $('dpReview').querySelectorAll('details').forEach((d) => { d.open = true; }));
+    $('dpShut').addEventListener('click', () => $('dpReview').querySelectorAll('details').forEach((d) => { d.open = false; }));
+    $('dpAccept').addEventListener('click', () => show('dpBanner', false)); $('dpClose').addEventListener('click', () => show('dpBanner', false));
+    document.addEventListener('keydown', (ev) => {
+      if ($('dpQuiz').hidden || !S) return;
+      if (ev.target && /INPUT|TEXTAREA/.test(ev.target.tagName)) return;
+      const q = S.qs[S.i], k = parseInt(ev.key, 10);
+      if (k >= 1 && k <= q.options.length) choose(k - 1);
+      else if (ev.key === 'Enter' && !(ev.target && ev.target.tagName === 'BUTTON')) commit(false);
     });
-    readChallenge();
-  });
-  if (typeof window.__dpTest === 'function') window.__dpTest({ buildQuiz: buildQuiz, summarise: summarise, state: state, gens: { genPair, genAnt, genDed, genSeq, genTable, genDelta, genRate, genPercent, genSeries, genOdd, genFlow }, SCEN: SCEN });
+    setMode(true);
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
 })();
