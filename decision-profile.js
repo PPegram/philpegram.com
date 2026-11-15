@@ -295,10 +295,34 @@
 
   /* ---------- Archetypes ---------- */
   const ARCH = {
-    architect: { name: 'The Bayesian Architect', quad: 'Evidence-first · Governance-led', e: 1, g: 1, tag: 'You verify before committing, and you build the controls that make decisions repeatable.', up: 'You separate real signal from noise, and your decisions survive scrutiny.', down: 'Watch the cost of delay. Ask what a wrong answer costs against a late one, and set a deadline for certainty.' },
-    experimenter: { name: 'The Field Experimenter', quad: 'Evidence-first · Autonomy-led', e: 1, g: 0, tag: 'You want proof, but you would rather generate it quickly through small live tests than wait for sign-off.', up: 'You turn disagreements into tests, and you learn faster than committees do.', down: 'Tests without owners drift. Agree who decides, and what result would change their mind, before you start.' },
-    operator: { name: 'The Fast Operator', quad: 'Speed-first · Autonomy-led', e: 0, g: 0, tag: 'You act on the best read available, keep options open and correct course as you go.', up: 'You keep momentum when others stall, and you are comfortable owning the call.', down: 'Speed hides unrecorded assumptions. Write down the one fact that would make you reverse, and check it on a date.' },
-    steward: { name: 'The Accountable Steward', quad: 'Speed-first · Governance-led', e: 0, g: 1, tag: 'You move quickly, and you make sure someone named has accepted the risk.', up: 'You get decisions made and keep them traceable, so nobody is surprised later.', down: 'Sign-off can stand in for evidence. Ask what the signatory actually saw before they accepted the risk.' }
+    architect: { name: 'The Bayesian Architect', quad: 'Evidence-first · Governance-led', e: 1, g: 1,
+      lean: 'On this attempt, you leaned towards checking first and making the decision traceable.',
+      tag: 'You verify before committing, and you build the controls that make decisions repeatable.',
+      how: 'You ask what would have to be true for this to work, then check it. You want a named owner, a recorded rationale and an agreed threshold, because they let the next person make the same call without you.',
+      up: 'You change your mind when the evidence does, and your decision trail outlives your involvement. Your calls hold up under scrutiny.',
+      down: 'The cost of waiting. A decision that is right on Thursday but made in March is still a miss. Ask what a wrong answer costs against a late one.',
+      tryit: 'Before your next big call, write down the evidence threshold and the date you will decide anyway. If the evidence has not arrived by then, decide on what you have and record the risk.' },
+    experimenter: { name: 'The Field Experimenter', quad: 'Evidence-first · Autonomy-led', e: 1, g: 0,
+      lean: 'On this attempt, you leaned towards testing quickly, with the freedom to act.',
+      tag: 'You would rather run a small test than win an argument, and you would rather run it now than wait for permission.',
+      how: 'You treat a disagreement as a hypothesis. You look for the smallest live test that would settle it, and you ship a contained version before you debate a perfect one.',
+      up: 'You turn opinions into experiments, so disagreements get settled by data in a fortnight, not by seniority in a meeting.',
+      down: 'Tests without an owner drift. If nobody has agreed to act on the result, you have collected evidence for its own sake.',
+      tryit: 'Before you launch your next test, write three lines: who decides, what result means go, and what result means stop.' },
+    operator: { name: 'The Fast Operator', quad: 'Speed-first · Autonomy-led', e: 0, g: 0,
+      lean: 'On this attempt, you leaned towards acting on the best read available.',
+      tag: 'You act on the best read you have, keep your options open and fix things in flight.',
+      how: 'You take the information on the table, make the call and watch for signals. You see delay as a decision in itself, and usually a worse one.',
+      up: 'You hold momentum when others stall, and you will own the call. People like working with you because things happen.',
+      down: 'Speed hides assumptions you never wrote down. Without a stated reversal trigger, you will be confidently wrong, quickly.',
+      tryit: 'Attach a one-line reversal note to every call: "I will undo this if X appears by this date." Review the notes monthly.' },
+    steward: { name: 'The Accountable Steward', quad: 'Speed-first · Governance-led', e: 0, g: 1,
+      lean: 'On this attempt, you leaned towards moving fast with a named owner for the risk.',
+      tag: 'You move fast, and you make sure a named person has accepted the risk.',
+      how: 'You treat a decision as a commitment that someone owns, so you get a name on it early. Once the right person has accepted the risk, you move.',
+      up: 'Decisions get made and stay traceable, so nobody is surprised six months later. That is rarer than it sounds.',
+      down: 'A signature can stand in for evidence. Sign-off tells you who is accountable, not whether the call is sound.',
+      tryit: 'When you collect a sign-off, record in one line what evidence the signatory saw. If you cannot write that line, the sign-off is not doing its job yet.' }
   };
   const archOf = (e, g) => (e >= 2 ? (g >= 2 ? 'architect' : 'experimenter') : (g >= 2 ? 'steward' : 'operator'));
   const BAT = { verbal: 'Verbal', numerical: 'Numerical', abstract: 'Abstract', style: 'Decision style' };
@@ -380,6 +404,11 @@
   }
 
   /* ---------- Results ---------- */
+  function extra(id, anchor, where, cls) {
+    let el = $(id);
+    if (!el) { el = document.createElement('p'); el.id = id; if (cls) el.className = cls; $(anchor)[where](el); }
+    return el;
+  }
   function finish() {
     show('dpQuiz', false); show('dpResults', true);
     const per = { verbal: 0, numerical: 0, abstract: 0 }; let score = 0, e = 0, g = 0;
@@ -394,10 +423,12 @@
     $('rPips').innerHTML = ['verbal', 'numerical', 'abstract'].map((b) => `<span class='grp'>${[0, 1, 2].map((k) => `<i class='${k < per[b] ? 'ok' : ''}'></i>`).join('')}</span>`).join('');
     $('rRows').innerHTML = ['verbal', 'numerical', 'abstract'].map((b) => `<li><span>${BAT[b]}</span><b>${per[b]} / 3</b></li>`).join('');
     $('rStyle').textContent = A.name; $('rQuad').textContent = A.quad; $('rTag').textContent = A.tag;
+    extra('rLean', 'rStyle', 'before', 'dp-hint').textContent = A.lean;
+    extra('rHow', 'rTag', 'after', '').textContent = A.how;
     $('rMap').innerHTML = mapSVG(e, g, key);
     $('rPicks').innerHTML = S.qs.filter((q) => !q.scored).map((q, i) => { const a = S.ans[9 + i]; return `<li>Scenario ${i + 1}: <b>${esc(q.options[a.sel].tag)}</b></li>`; }).join('');
     const weakest = ['verbal', 'numerical', 'abstract'].sort((a, b) => per[a] - per[b])[0];
-    $('dpPlan').innerHTML = `<p><b>Reasoning.</b> ${score >= 7 ? 'A strong practice score.' : score >= 4 ? 'A solid base with room to move.' : 'A tough set, and the explanations below are the useful part.'} ${per[weakest] < 3 ? TIPS[weakest] : 'You dropped nothing in any battery, so try the timed mode if you have not.'}</p><p><b>Decision style.</b> ${esc(A.up)} ${esc(A.down)}</p><p>This is a practice tool, not a normed test. Treat a single attempt as a prompt for reflection.</p>`;
+    $('dpPlan').innerHTML = `<p><b>Reasoning.</b> ${score >= 7 ? 'A strong practice score.' : score >= 4 ? 'A solid base with room to move.' : 'A tough set, and the explanations below are the useful part.'} ${per[weakest] < 3 ? TIPS[weakest] : 'You dropped nothing in any battery, so try the timed mode if you have not.'}</p><p><b>Decision style.</b> ${esc(A.up)}</p><p><b>Watch for.</b> ${esc(A.down)}</p><p><b>Try this.</b> ${esc(A.tryit)}</p><p>This is a practice tool, not a normed test. Treat a single attempt as a prompt for reflection.</p>`;
     buildReview();
     const url = challengeURL();
     $('dpShare').value = shareText(url);
