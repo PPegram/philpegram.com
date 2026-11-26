@@ -35,3 +35,22 @@
     height: 28px;
   }
 }
+
+/* Inner-page rhythm additions */
+.nav-contact[aria-current="page"] {
+  background: var(--pink);
+  color: var(--navy) !important;
+}
+
+.prose p + h2 {
+  margin-top: 40px;
+}
+
+.two-col .text-link {
+  margin-top: 20px;
+}
+
+.two-col .text-link + .fine,
+.message-box + .fine {
+  margin-top: 16px;
+}
