@@ -1,0 +1,36 @@
+/* Route map: homepage. Soft 3D sticker style, matching the hero objects. Tokens from styles.css */
+.route-map{padding-top:30px}
+.route-figure{position:relative;max-width:1100px;margin:0 auto;background:radial-gradient(120% 90% at 50% 0,#262d52 0,var(--deep) 70%);border:1px solid var(--line);border-radius:28px;padding:clamp(16px,2.5vw,36px);box-shadow:0 30px 60px #0a0d2255}
+.route-svg{position:relative;z-index:1;display:block;width:100%;height:auto;overflow:visible}
+.route-svg .tube{fill:none;stroke-width:15;stroke-linecap:round;stroke-linejoin:round}
+.route-svg .tube.decision{stroke:#f49ab8}
+.route-svg .tube.research{stroke:#f7f4ec}
+.route-svg .shine{fill:none;stroke-width:4;stroke-linecap:round;stroke-linejoin:round;stroke:#fff;opacity:.55}
+.route-svg .shine.decision{stroke:#fde0ea}
+.route-svg .spark{fill:none;stroke:#f2b84b;stroke-width:9;stroke-linecap:round;stroke-dasharray:.1 20;filter:drop-shadow(0 3px 3px #0008)}
+.route-svg .line-tag text{font:700 13px var(--font);fill:var(--navy);letter-spacing:.02em}
+.route-svg .stop{cursor:pointer;outline:none;color:inherit}
+.route-svg .stop .hit{fill:transparent}
+.route-svg .stop .ring{fill:none;stroke:#f2b84b;stroke-width:5}
+.route-svg .puck{fill:url(#gCream);filter:url(#soft)}
+.route-svg .gem{fill:url(#gNavy)}
+.route-svg .gloss{fill:#fff;opacity:.7}
+.route-svg .puck,.route-svg .gem,.route-svg .tag rect{transition:transform .2s,fill .2s}
+.route-svg .puck,.route-svg .gem{transform-box:fill-box;transform-origin:center}
+.route-svg .tag rect{rx:16px;fill:url(#gCream);filter:url(#soft)}
+.route-svg .tag text{font:700 15.5px var(--font);fill:var(--navy)}
+.route-svg .stop:hover .gem,.route-svg .stop:focus-visible .gem,.route-svg .stop.on .gem{fill:url(#gPink)}
+.route-svg .stop:hover .puck,.route-svg .stop:focus-visible .puck,.route-svg .stop.on .puck{transform:scale(1.14)}
+.route-svg .stop:hover .tag rect,.route-svg .stop:focus-visible .tag rect,.route-svg .stop.on .tag rect{fill:url(#gPink)}
+.route-svg .stop:focus-visible .hit{stroke:#f2b84b;stroke-width:3;stroke-dasharray:6 5}
+.route-readout{position:relative;z-index:1;min-height:5.4em;margin-top:18px;padding:20px 26px;background:var(--cream);color:var(--navy);border-radius:22px;box-shadow:0 14px 28px #0a0d2244;display:grid;grid-template-columns:auto 1fr;gap:6px 22px;align-items:baseline}
+.route-readout strong{font-size:var(--lg);font-weight:700;color:#904861}
+.route-readout span{color:#3b4060;font-size:var(--sm);max-width:62ch}
+.route-key{position:relative;z-index:1;display:flex;flex-wrap:wrap;gap:8px 26px;margin-top:18px;font-size:var(--xs);color:var(--muted)}
+.route-key i{display:inline-block;width:26px;height:8px;border-radius:4px;margin-right:8px;vertical-align:middle;box-shadow:0 2px 3px #0006}
+.route-list{display:none;list-style:none;margin:0;padding:0}
+.route-list li{border-top:1px solid var(--line)}
+.route-list a{display:block;padding:16px 0;text-decoration:none;font-weight:600}
+.route-list small{display:block;font-weight:400;color:var(--muted);font-size:var(--sm)}
+@media(prefers-reduced-motion:no-preference){.route-svg .tube.draw,.route-svg .shine{stroke-dasharray:1;stroke-dashoffset:1;animation:route-draw 1.6s ease-out forwards}.route-svg .tube.draw.two,.route-svg .shine.two{animation-delay:.3s}@keyframes route-draw{to{stroke-dashoffset:0}}}
+@media(max-width:760px){.route-figure{padding:8px 18px;border-radius:20px}.route-svg,.route-readout,.route-key{display:none}.route-list{display:block}}
