@@ -1,0 +1,28 @@
+/* Route map: homepage. Uses tokens from styles.css */
+.route-map{padding-top:30px}
+.route-figure{max-width:1100px;margin:0 auto;background:var(--deep);border:1px solid var(--line);border-radius:14px;padding:clamp(14px,2.5vw,34px)}
+.route-svg{display:block;width:100%;height:auto;overflow:visible}
+.route-svg .line{fill:none;stroke-width:9;stroke-linecap:round;stroke-linejoin:round}
+.route-svg .line.decision{stroke:var(--pink)}
+.route-svg .line.research{stroke:var(--cream)}
+.route-svg .line.voice{stroke:var(--muted);stroke-dasharray:2 16}
+.route-svg .line-name{font:700 12px var(--font);letter-spacing:.14em;text-transform:uppercase}
+.route-svg .stop{cursor:pointer;outline:none;color:inherit}
+.route-svg .stop .dot{fill:var(--navy);stroke:var(--cream);stroke-width:5;transition:fill .2s}
+.route-svg .stop .hub{fill:none;stroke:var(--cream);stroke-width:3}
+.route-svg .stop .hit{fill:transparent}
+.route-svg .stop text{font:600 17px var(--font);fill:var(--cream);paint-order:stroke;stroke:var(--deep);stroke-width:6px;stroke-linejoin:round}
+.route-svg .stop:hover .dot,.route-svg .stop:focus-visible .dot,.route-svg .stop.on .dot{fill:var(--pink)}
+.route-svg .stop:focus-visible .hit{stroke:var(--pink);stroke-width:3}
+.route-svg .stop:hover text,.route-svg .stop:focus-visible text{fill:var(--pink)}
+.route-readout{min-height:5.2em;margin-top:18px;padding-top:18px;border-top:1px solid var(--line);display:grid;grid-template-columns:auto 1fr;gap:6px 22px;align-items:baseline}
+.route-readout strong{font-size:var(--lg);font-weight:600;color:var(--pink)}
+.route-readout span{color:var(--muted);font-size:var(--sm);max-width:62ch}
+.route-key{display:flex;flex-wrap:wrap;gap:8px 26px;margin-top:16px;font-size:var(--xs);color:var(--muted)}
+.route-key i{display:inline-block;width:26px;height:6px;border-radius:3px;margin-right:8px;vertical-align:middle}
+.route-list{display:none;list-style:none;margin:0;padding:0}
+.route-list li{border-top:1px solid var(--line)}
+.route-list a{display:block;padding:16px 0;text-decoration:none;font-weight:600}
+.route-list small{display:block;font-weight:400;color:var(--muted);font-size:var(--sm)}
+@media(prefers-reduced-motion:no-preference){.route-svg .line.draw{stroke-dasharray:1;stroke-dashoffset:1;animation:route-draw 1.6s ease-out forwards}.route-svg .line.draw.two{animation-delay:.3s}@keyframes route-draw{to{stroke-dashoffset:0}}}
+@media(max-width:760px){.route-figure{padding:8px 18px}.route-svg,.route-readout,.route-key{display:none}.route-list{display:block}}
