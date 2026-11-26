@@ -54,3 +54,40 @@
 .message-box + .fine {
   margin-top: 16px;
 }
+
+/* Photo moment: speaking page panel */
+.panel-section {
+  padding-bottom: 40px;
+}
+
+.panel-photo img {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  object-position: 50% 35%;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--line);
+}
+
+.panel-photo figcaption {
+  margin-top: 12px;
+  font-size: var(--xs);
+  color: var(--muted);
+}
+
+@media (max-width: 760px) {
+  .panel-photo img {
+    aspect-ratio: 4 / 3;
+    object-position: 50% 30%;
+  }
+}
+
+/* Speaking topics without counters */
+.topic-list article {
+  grid-template-columns: 1fr;
+}
+
+.podcast-embed {
+  margin-top: 24px;
+}
