@@ -1,0 +1,14 @@
+.book-band{background:var(--pink);color:var(--navy)}
+.book-band .book-feature{display:grid;grid-template-columns:minmax(220px,.7fr) 1.3fr;gap:clamp(40px,7vw,110px);align-items:center;padding-block:100px}
+.book-cover{max-width:340px;margin:0 auto;transform:rotate(-3deg)}
+.book-cover img{width:100%;height:auto;border-radius:4px;box-shadow:0 28px 50px #1c224055}
+.book-band .eyebrow{color:var(--navy);opacity:.75}
+.book-band h2{font-size:clamp(3.4rem,9vw,8rem);font-weight:700;letter-spacing:-.06em;line-height:.9}
+.book-band .lead{max-width:24ch;margin-top:22px;font-weight:500}
+.book-by{margin-top:14px;font-size:var(--sm)}
+.book-band .button{background:var(--navy);color:var(--cream)}
+.book-band .button:hover{background:var(--navy);color:var(--cream)}
+.book-band .book-soon{cursor:default}
+.book-band .book-soon:hover{transform:none}
+.book-band :focus-visible{outline-color:var(--navy)}
+@media(max-width:760px){.book-band .book-feature{grid-template-columns:1fr;gap:40px;padding-block:65px}.book-cover{max-width:240px}.book-band h2{font-size:clamp(3.4rem,18vw,5rem)}}
