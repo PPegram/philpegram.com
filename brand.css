@@ -1,5 +1,37 @@
-/* Header logo: P with data point */
-.brand{background:none;border-radius:0;padding:0}
-.brand svg{display:block;width:40px;height:40px;color:var(--cream)}
-.brand span{display:none}
-@media(max-width:760px){.brand svg{width:36px;height:36px}}
+/* Header mark: P with pink data point + wordmark */
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0;
+  background: none;
+  border-radius: 0;
+  color: var(--cream);
+  text-decoration: none;
+  font-size: 1rem;
+  font-weight: 500;
+  letter-spacing: -0.015em;
+}
+
+.brand svg {
+  display: block;
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  color: var(--cream);
+}
+
+.brand span {
+  display: inline;
+}
+
+.brand:hover {
+  color: var(--pink);
+}
+
+@media (max-width: 760px) {
+  .brand svg {
+    width: 28px;
+    height: 28px;
+  }
+}
