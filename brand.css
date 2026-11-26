@@ -3,3 +3,7 @@
 .brand svg{display:block;width:40px;height:40px;color:var(--cream)}
 .brand span{display:none}
 @media(max-width:760px){.brand svg{width:36px;height:36px}}
+/* Speaking: panel photo */
+.panel-figure{margin:2.5rem auto}
+.panel-figure img{display:block;width:100%;height:auto;border-radius:16px}
+.panel-figure figcaption{margin-top:.6rem}
