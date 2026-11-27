@@ -20,7 +20,14 @@ Views on this site are Phil's own, not his employer's. The research briefs summa
 ## Tools
 
 - [The Data Playbook](https://philpegram.com/playbook): free practical guide to data analysis, data visualisation and presenting evidence. Covers framing the decision, driver trees, data checks, correlation versus cause, choosing and drawing charts, colour accessibility, so-what titles and handling sceptics. Includes a chart picker, colour palettes and a pre-flight checklist. Practical guidance, not peer-reviewed research.
+- [The KPI Tree Workshop](https://philpegram.com/kpi-tree): free, private KPI tree builder that runs in the browser and stores nothing on a server. Starts with a decision sentence, builds a metric tree with owners, definitions and decisions, runs a six-question metric test, flags metrics that can mislead (such as ROAS, cost per click and retention rate), checks for seasonal versus real movement, and exports a measurement plan and a one-page problem, evidence, implication, decision, action brief. Practical guidance, not peer-reviewed research.
 - [Reasoning and decision-style diagnostic](https://philpegram.com/decision-profile): free twelve-question practice diagnostic (nine scored reasoning items and three commercial scenarios) that profiles decision style on evidence-versus-velocity and governance-versus-autonomy axes. Not a validated or normed psychometric instrument.
+
+## Press and recognition
+
+- [CDO Magazine: TalkTalk appoints Phil Pegram as Head of Insights, Analytics and Market Research](https://www.cdomagazine.tech/leadership-moves/talktalk-appoints-phil-pegram-as-head-of-insights-analytics-and-market-research): 11 June 2026.
+- [Insight250 winners, 2026](https://insight250.com/winners/)
+- [Qual360 Europe speaker panel](https://eu.qual360.com/speaker-panel/)
 
 ## Media
 
@@ -31,3 +38,4 @@ Views on this site are Phil's own, not his employer's. The research briefs summa
 - [Short biography (plain text)](https://philpegram.com/phil-pegram-bio.txt)
 - [LinkedIn](https://www.linkedin.com/in/philpegram)
 - [ORCID](https://orcid.org/0009-0005-1296-2359)
+- [Teesside University research portal](https://research.tees.ac.uk/en/persons/philip-pegram/)
