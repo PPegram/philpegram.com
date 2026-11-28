@@ -209,7 +209,7 @@
 .kt-cg-card{flex:1 1 420px;background:var(--pink);color:var(--navy);border-radius:20px;padding:22px 26px;transform:rotate(-1deg);box-shadow:0 14px 30px #0b0e2055}
 .kt-cg-card p{margin:4px 0;line-height:1.4}
 .kt-cg-card span{display:inline-block;min-width:96px;font-size:var(--xs);font-weight:800;text-transform:uppercase;letter-spacing:.05em}
-.kt-cg-k{font-size:var(--xs)!important;font-weight:800;text-transform:uppercase;letter-spacing:.08em;opacity:.7}
+.kt-cg-k{font-size:var(--xs)!important;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--navy)}
 .kt-cg-m{font-size:1.6rem!important;font-weight:700;letter-spacing:-.03em;margin-bottom:10px!important}
 .kt-moves{counter-reset:m;list-style:none;padding:0;margin:0;display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
 .kt-moves li{counter-increment:m;background:var(--deep);border:1px solid var(--line);border-radius:16px;padding:20px 20px 22px;line-height:1.5;font-size:var(--sm);color:var(--muted)}
