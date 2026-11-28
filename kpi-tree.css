@@ -290,3 +290,4 @@
   .kt-node{border:1px solid #999!important;box-shadow:none!important}
 }
 @media (prefers-reduced-motion:reduce){.kt-start,.kt-meter i,.kt-toast{transition:none}.pulse{animation:none}}
+.kt-next{margin:18px 0 8px;max-width:760px}.kt-next a,.kt-moves a{color:var(--pink);text-decoration:underline;text-underline-offset:3px}
